@@ -168,6 +168,9 @@ private struct LaunchEntryRow: View {
     let canRemove: Bool
     let onRemove: () -> Void
 
+    /// Whether the command was auto-filled (user hasn't manually edited it)
+    @State private var commandAutoFilled = true
+
     var body: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 10) {
@@ -178,14 +181,28 @@ private struct LaunchEntryRow: View {
                 LabeledContent("Provider") {
                     Picker("", selection: $entry.provider) {
                         ForEach(AgentProvider.allCases, id: \.self) { p in
-                            Text(p.rawValue.capitalized).tag(p)
+                            Text(p.displayName).tag(p)
                         }
                     }
                     .labelsHidden()
+                    .onChange(of: entry.provider) { _, newProvider in
+                        // Auto-fill command and name when provider changes
+                        if commandAutoFilled || entry.command.isEmpty {
+                            entry.command = newProvider.defaultCommand
+                            commandAutoFilled = true
+                        }
+                        if entry.name.isEmpty {
+                            entry.name = newProvider.displayName
+                        }
+                    }
                 }
                 LabeledContent("Command") {
                     TextField("e.g. claude, aider, codex", text: $entry.command)
                         .textFieldStyle(.roundedBorder)
+                        .onChange(of: entry.command) { _, _ in
+                            // If user manually edits, stop auto-filling
+                            commandAutoFilled = false
+                        }
                 }
                 LabeledContent("Directory") {
                     HStack {
@@ -223,10 +240,34 @@ private struct LaunchEntryRow: View {
 
 struct LaunchEntryData: Identifiable {
     let id = UUID()
-    var name: String = ""
+    var name: String = "Claude"
     var provider: AgentProvider = .claude
-    var command: String = ""
+    var command: String = "claude"
     var workDir: String = ""
+}
+
+// MARK: - Provider Helpers
+
+extension AgentProvider {
+    var displayName: String {
+        switch self {
+        case .claude: return "Claude"
+        case .codex: return "Codex"
+        case .aider: return "Aider"
+        case .gemini: return "Gemini"
+        case .custom: return "Custom"
+        }
+    }
+
+    var defaultCommand: String {
+        switch self {
+        case .claude: return "claude"
+        case .codex: return "codex"
+        case .aider: return "aider"
+        case .gemini: return "gemini"
+        case .custom: return ""
+        }
+    }
 }
 
 // MARK: - Public LaunchEntry (for cross-module API)
