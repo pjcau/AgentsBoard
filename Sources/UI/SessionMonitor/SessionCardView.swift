@@ -5,8 +5,6 @@ import AgentsBoardCore
 
 struct SessionCardView: View {
     let viewModel: SessionCardViewModel
-    @State private var inputText: String = ""
-    @FocusState private var inputFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -18,9 +16,19 @@ struct SessionCardView: View {
                 state: viewModel.state
             )
 
-            // Terminal output area
-            ScrollViewReader { proxy in
-                ScrollView([.horizontal, .vertical]) {
+            // Real terminal emulator (SwiftTerm) — handles TUI rendering + keyboard input
+            if let command = viewModel.launchCommand {
+                TerminalEmulatorView(
+                    command: command,
+                    workingDirectory: viewModel.workDir,
+                    onProcessExit: { _ in
+                        viewModel.state = .inactive
+                    }
+                )
+                .frame(minHeight: 120)
+            } else {
+                // Fallback for sessions without a command
+                ScrollView(.vertical) {
                     if viewModel.cleanOutput.isEmpty {
                         Text(viewModel.state == .working ? "Waiting for output..." : "No output")
                             .font(.system(.body, design: .monospaced))
@@ -34,46 +42,10 @@ struct SessionCardView: View {
                             .frame(maxWidth: .infinity, alignment: .topLeading)
                             .padding(8)
                             .textSelection(.enabled)
-                            .id("output-bottom")
                     }
                 }
-                .onChange(of: viewModel.cleanOutput) {
-                    proxy.scrollTo("output-bottom", anchor: .bottom)
-                }
-            }
-            .background(Color.black)
-            .frame(minHeight: 80)
-
-            // Input bar (send commands to the PTY)
-            if viewModel.state == .working || viewModel.state == .needsInput {
-                HStack(spacing: 8) {
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                    TextField("Type command...", text: $inputText)
-                        .textFieldStyle(.plain)
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundStyle(.green)
-                        .focused($inputFocused)
-                        .onSubmit {
-                            guard !inputText.isEmpty else { return }
-                            viewModel.sendInput(inputText + "\n")
-                            inputText = ""
-                        }
-                    Button {
-                        guard !inputText.isEmpty else { return }
-                        viewModel.sendInput(inputText + "\n")
-                        inputText = ""
-                    } label: {
-                        Image(systemName: "return")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(inputText.isEmpty)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.black.opacity(0.8))
+                .background(Color.black)
+                .frame(minHeight: 80)
             }
 
             // Footer
@@ -218,6 +190,8 @@ final class SessionCardViewModel {
     var duration: String = "0m"
     var lastAction: String = ""
     var lastOutput: String = ""
+    var launchCommand: String?
+    var workDir: String?
 
     /// Output with ANSI escape codes stripped for display
     var cleanOutput: String {
@@ -246,6 +220,8 @@ final class SessionCardViewModel {
         self.cost = Self.formatCost(session.totalCost)
         self.duration = Self.formatDuration(since: session.startTime)
         self.lastOutput = session.outputText
+        self.launchCommand = session.launchCommand
+        self.workDir = session.projectPath
         startRefreshing()
     }
 
@@ -279,28 +255,66 @@ final class SessionCardViewModel {
         lastOutput = session.outputText
     }
 
-    /// Strips ANSI/VT100 escape sequences from terminal output
+    /// Strips ANSI/VT100/xterm escape sequences from terminal output.
+    /// Uses a character-by-character state machine for reliability.
     private static func stripANSI(_ text: String) -> String {
-        let esc = "\u{1b}"  // ESC character
-        let bel = "\u{07}"  // BEL character
-        let si  = "\u{0f}"  // SI
-        let so  = "\u{0e}"  // SO
+        var result = ""
+        result.reserveCapacity(text.count)
+        var chars = text.unicodeScalars.makeIterator()
 
-        // Build regex patterns using the escape character
-        let patterns = [
-            "\(esc)\\[[0-9;]*[A-Za-z]",              // CSI sequences (colors, cursor, etc.)
-            "\(esc)\\][^\(bel)\(esc)]*(?:\(bel)|\(esc)\\\\)",  // OSC sequences
-            "\(esc)\\([A-Z]",                          // Character set selection
-            "\(esc)[>=<]",                             // Keypad/ANSI mode
-            "\(esc)\\[\\?[0-9;]*[hl]",                // DEC private modes
-            "[\(si)\(so)]",                            // SI/SO
-        ]
-        let combined = patterns.joined(separator: "|")
-        guard let regex = try? NSRegularExpression(pattern: combined) else {
-            return text
+        while let c = chars.next() {
+            if c == "\u{1b}" {
+                // ESC — consume the entire escape sequence
+                guard let next = chars.next() else { break }
+                switch next {
+                case "[":
+                    // CSI: ESC [ (params) (intermediates) final_byte
+                    // Params: 0x30-0x3F, Intermediates: 0x20-0x2F, Final: 0x40-0x7E
+                    var ch = chars.next()
+                    while let c2 = ch, c2.value >= 0x20 && c2.value <= 0x3F { ch = chars.next() }
+                    // intermediates
+                    while let c2 = ch, c2.value >= 0x20 && c2.value <= 0x2F { ch = chars.next() }
+                    // final byte consumed (0x40-0x7E), or we ran out
+                    continue
+                case "]":
+                    // OSC: ESC ] ... (BEL | ESC \)
+                    while let c2 = chars.next() {
+                        if c2 == "\u{07}" { break }  // BEL
+                        if c2 == "\u{1b}" { let _ = chars.next(); break }  // ST = ESC backslash
+                    }
+                    continue
+                case "P":
+                    // DCS: ESC P ... ST
+                    while let c2 = chars.next() {
+                        if c2 == "\u{1b}" { let _ = chars.next(); break }
+                    }
+                    continue
+                case "(", ")", "*", "+":
+                    // Character set designation — skip one more char
+                    let _ = chars.next()
+                    continue
+                default:
+                    // Single-char escape (ESC =, ESC >, ESC c, etc.)
+                    continue
+                }
+            } else if c.value < 0x20 {
+                // Control characters — keep only \n, \r, \t
+                if c == "\n" || c == "\r" || c == "\t" {
+                    result.append(Character(c))
+                }
+                // Drop all others (BEL, BS, SI, SO, etc.)
+                continue
+            } else {
+                result.append(Character(c))
+            }
         }
-        let range = NSRange(text.startIndex..., in: text)
-        return regex.stringByReplacingMatches(in: text, range: range, withTemplate: "")
+
+        // Clean up excessive blank lines
+        while result.contains("\n\n\n") {
+            result = result.replacingOccurrences(of: "\n\n\n", with: "\n\n")
+        }
+
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func formatCost(_ cost: Decimal) -> String {

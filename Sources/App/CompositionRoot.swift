@@ -73,28 +73,14 @@ final class CompositionRoot {
     // MARK: - Session Launch
 
     func launchSession(command: String, name: String, workdir: String?) {
+        // We no longer launch the PTY here — SwiftTerm's LocalProcessTerminalView
+        // manages its own PTY. We just register a session placeholder.
         let session = TerminalSession()
-        do {
-            try session.launch(command: command, workingDirectory: workdir, environment: nil)
-        } catch {
-            print("[AgentsBoard] Failed to launch session: \(error)")
-            // Still register the session so user sees the error
-            let agentSession = AgentSessionAdapter(
-                terminal: session,
-                name: name.isEmpty ? "Session" : name,
-                projectPath: workdir
-            )
-            agentSession.state = .error
-            agentSession.outputText = "Failed to launch: \(error.localizedDescription)"
-            fleetManager.register(agentSession)
-            return
-        }
-
-        // Create an AgentSession and register with fleet
         let agentSession = AgentSessionAdapter(
             terminal: session,
             name: name.isEmpty ? "Session" : name,
-            projectPath: workdir
+            projectPath: workdir,
+            command: command
         )
         fleetManager.register(agentSession)
         navigationState.selectedSessionId = agentSession.sessionId
@@ -152,8 +138,8 @@ final class CompositionRoot {
 
 // MARK: - Agent Session Adapter
 
-/// Bridges TerminalSession to AgentSessionRepresentable for fleet registration.
-/// Also reads PTY output and exposes it for the UI.
+/// Session placeholder for fleet registration.
+/// The actual terminal process is managed by SwiftTerm's LocalProcessTerminalView in the UI.
 @Observable
 final class AgentSessionAdapter: AgentSessionRepresentable {
     let sessionId: String
@@ -164,56 +150,18 @@ final class AgentSessionAdapter: AgentSessionRepresentable {
     let startTime: Date
     var lastEventTime: Date?
     var outputText: String = ""
+    var launchCommand: String?
 
-    private let terminal: TerminalSession
-    private var readSource: DispatchSourceRead?
-
-    init(terminal: TerminalSession, name: String, projectPath: String?) {
-        self.terminal = terminal
+    init(terminal: TerminalSession, name: String, projectPath: String?, command: String?) {
         self.sessionId = terminal.sessionId
         self.projectPath = projectPath
+        self.launchCommand = command
         self.startTime = Date()
         self.lastEventTime = Date()
-        startReadingOutput()
-    }
-
-    deinit {
-        readSource?.cancel()
     }
 
     func sendInput(_ text: String) {
-        guard let data = text.data(using: .utf8) else { return }
-        terminal.sendInput(data)
-    }
-
-    /// Reads output from the PTY file descriptor and appends to outputText.
-    private func startReadingOutput() {
-        guard let pty = terminal.ptyProcess else { return }
-        let fd = pty.fileDescriptor
-        let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: .main)
-        source.setEventHandler { [weak self] in
-            guard let self else { return }
-            var buffer = [UInt8](repeating: 0, count: 8192)
-            let bytesRead = read(fd, &buffer, buffer.count)
-            if bytesRead > 0 {
-                if let chunk = String(bytes: buffer[0..<bytesRead], encoding: .utf8) {
-                    self.outputText += chunk
-                    // Keep only last 10000 chars to avoid unbounded growth
-                    if self.outputText.count > 10000 {
-                        self.outputText = String(self.outputText.suffix(8000))
-                    }
-                    self.lastEventTime = Date()
-                }
-            } else if bytesRead == 0 {
-                // EOF — process exited
-                self.state = .inactive
-                self.readSource?.cancel()
-                self.readSource = nil
-            }
-        }
-        source.setCancelHandler { /* cleanup */ }
-        source.resume()
-        self.readSource = source
+        // Input is handled directly by SwiftTerm's TerminalView
     }
 }
 

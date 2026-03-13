@@ -47,6 +47,7 @@ let package = Package(
             name: "AgentsBoardUI",
             dependencies: [
                 "AgentsBoardCore",
+                "SwiftTerm",
             ],
             path: "Sources/UI"
         ),

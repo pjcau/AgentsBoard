@@ -24,11 +24,13 @@ public protocol AgentSessionRepresentable: AnyObject {
     var startTime: Date { get }
     var lastEventTime: Date? { get }
     var outputText: String { get }
+    var launchCommand: String? { get }
     func sendInput(_ text: String)
 }
 
 extension AgentSessionRepresentable {
     public var outputText: String { "" }
+    public var launchCommand: String? { nil }
     public func sendInput(_ text: String) {}
 }
 
