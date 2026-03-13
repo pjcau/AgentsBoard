@@ -43,18 +43,20 @@ struct FleetHeaderView: View {
     let stats: FleetStats
 
     var body: some View {
-        HStack(spacing: 24) {
-            MetricView(label: "Total", value: "\(stats.totalSessions)", icon: "cpu", color: .primary)
-            MetricView(label: "Active", value: "\(stats.activeSessions)", icon: "bolt.fill", color: .green)
-            MetricView(label: "Needs Input", value: "\(stats.needsInputCount)", icon: "exclamationmark.circle.fill", color: .yellow)
-            MetricView(label: "Errors", value: "\(stats.errorCount)", icon: "xmark.circle.fill", color: .red)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 20) {
+                MetricView(label: "Total", value: "\(stats.totalSessions)", icon: "cpu", color: .primary)
+                MetricView(label: "Active", value: "\(stats.activeSessions)", icon: "bolt.fill", color: .green)
+                MetricView(label: "Needs Input", value: "\(stats.needsInputCount)", icon: "exclamationmark.circle.fill", color: .yellow)
+                MetricView(label: "Errors", value: "\(stats.errorCount)", icon: "xmark.circle.fill", color: .red)
 
-            Spacer()
+                Spacer(minLength: 16)
 
-            MetricView(label: "Total Cost", value: formatCost(stats.totalCost), icon: "dollarsign.circle", color: .orange)
+                MetricView(label: "Total Cost", value: formatCost(stats.totalCost), icon: "dollarsign.circle", color: .orange)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
         .background(.ultraThinMaterial)
     }
 
@@ -128,6 +130,7 @@ struct FleetAgentCard: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
+                    .truncationMode(.tail)
             }
         }
         .padding(12)

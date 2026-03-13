@@ -94,7 +94,8 @@ struct CommandPaletteView: View {
             .padding(.vertical, 8)
             .background(.ultraThinMaterial)
         }
-        .frame(width: 600, height: 420)
+        .frame(minWidth: 400, idealWidth: 600, maxWidth: 700,
+               minHeight: 300, idealHeight: 420, maxHeight: 500)
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.3), radius: 20, y: 10)

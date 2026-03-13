@@ -73,10 +73,13 @@ struct SessionListItem: View {
                 Text(session.name)
                     .font(.callout)
                     .lineLimit(1)
+                    .truncationMode(.tail)
                 if let model = session.modelName {
                     Text(model)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
             }
 

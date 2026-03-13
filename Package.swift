@@ -24,7 +24,10 @@ let package = Package(
                 "AgentsBoardCore",
                 "AgentsBoardUI",
             ],
-            path: "Sources/App"
+            path: "Sources/App",
+            resources: [
+                .copy("Resources/AppIcon.icns"),
+            ]
         ),
 
         // Core domain logic — zero UI dependencies

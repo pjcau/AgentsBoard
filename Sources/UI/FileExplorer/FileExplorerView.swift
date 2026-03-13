@@ -65,9 +65,9 @@ struct FileTreeRow: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 4) {
-                // Indentation
+                // Indentation (capped at 10 levels deep)
                 Spacer()
-                    .frame(width: CGFloat(depth) * 16)
+                    .frame(width: min(CGFloat(depth) * 16, 160))
 
                 // Disclosure indicator
                 if node.isDirectory {
@@ -89,6 +89,7 @@ struct FileTreeRow: View {
                 Text(node.name)
                     .font(.callout)
                     .lineLimit(1)
+                    .truncationMode(.middle)
 
                 Spacer()
 

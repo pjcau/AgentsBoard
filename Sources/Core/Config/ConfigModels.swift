@@ -40,7 +40,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
 }
 
 /// Layout modes for the main content area.
-public enum LayoutMode: String, Codable, Sendable {
+public enum LayoutMode: String, Codable, Sendable, CaseIterable {
     case single
     case list
     case twoColumn

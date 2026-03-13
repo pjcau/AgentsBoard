@@ -97,7 +97,7 @@ struct UnifiedDiffView: View {
     let hunks: [DiffHunk]
 
     var body: some View {
-        ScrollView {
+        ScrollView([.horizontal, .vertical]) {
             LazyVStack(spacing: 0) {
                 ForEach(hunks) { hunk in
                     // Hunk header
@@ -114,9 +114,9 @@ struct UnifiedDiffView: View {
                             // Line numbers
                             Group {
                                 Text(line.oldLineNumber.map(String.init) ?? "")
-                                    .frame(width: 50, alignment: .trailing)
+                                    .frame(minWidth: 36, alignment: .trailing)
                                 Text(line.newLineNumber.map(String.init) ?? "")
-                                    .frame(width: 50, alignment: .trailing)
+                                    .frame(minWidth: 36, alignment: .trailing)
                             }
                             .font(.system(.caption, design: .monospaced))
                             .foregroundStyle(.tertiary)
@@ -223,7 +223,7 @@ struct SideDiffLine: View {
             Text(lineNumber.map(String.init) ?? "")
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.tertiary)
-                .frame(width: 50, alignment: .trailing)
+                .frame(minWidth: 36, alignment: .trailing)
                 .padding(.trailing, 8)
 
             Text(content)

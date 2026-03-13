@@ -66,7 +66,7 @@ public final class TerminalSession: TerminalSessionManaging {
     // MARK: - Internal
 
     /// Access the underlying PTY for multiplexer registration.
-    var ptyProcess: PTYProcess? { process }
+    public var ptyProcess: PTYProcess? { process }
 
     /// Called when the process exits.
     func markExited() {

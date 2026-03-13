@@ -3,12 +3,12 @@
 
 import Foundation
 
-final class PTYProcess {
+public final class PTYProcess {
 
     // MARK: - Properties
 
-    let fileDescriptor: Int32
-    let pid: pid_t
+    public let fileDescriptor: Int32
+    public let pid: pid_t
     private(set) var isRunning: Bool = true
 
     // MARK: - Init

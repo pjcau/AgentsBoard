@@ -5,36 +5,31 @@ import AgentsBoardCore
 import AgentsBoardUI
 
 struct AgentsBoardCommands: Commands {
-    let compositionRoot: CompositionRoot
+    @Bindable var navigationState: NavigationState
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("New Session") {
-                // TODO: Step 14.1
+                navigationState.showingLauncher = true
             }
             .keyboardShortcut("n", modifiers: .command)
         }
 
         CommandGroup(after: .sidebar) {
-            Button("Toggle Sidebar") {
-                // TODO: Step 5.3
-            }
-            .keyboardShortcut("b", modifiers: .command)
-
             Divider()
 
             Button("Fleet Overview") {
-                // TODO: Step 6.1
+                navigationState.showingFleetOverview = true
             }
             .keyboardShortcut("f", modifiers: [.command, .shift])
 
             Button("Activity Log") {
-                // TODO: Step 6.2
+                navigationState.showingActivityLog = true
             }
             .keyboardShortcut("l", modifiers: .command)
 
             Button("Command Palette") {
-                // TODO: Step 7.1
+                navigationState.showingCommandPalette.toggle()
             }
             .keyboardShortcut("k", modifiers: .command)
         }

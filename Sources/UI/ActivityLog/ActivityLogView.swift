@@ -9,14 +9,14 @@ struct ActivityLogView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Filter bar
-            HStack {
+            HStack(spacing: 12) {
                 Picker("Time", selection: $viewModel.timeFilter) {
                     Text("Last Hour").tag(TimeFilter.lastHour)
                     Text("Today").tag(TimeFilter.today)
                     Text("All").tag(TimeFilter.all)
                 }
                 .pickerStyle(.segmented)
-                .frame(maxWidth: 300)
+                .frame(minWidth: 180, maxWidth: 280)
 
                 Spacer()
 
@@ -27,7 +27,7 @@ struct ActivityLogView: View {
                     Text("Errors").tag(CategoryFilter.errors)
                     Text("Costs").tag(CategoryFilter.costs)
                 }
-                .frame(maxWidth: 200)
+                .frame(minWidth: 120, maxWidth: 200)
             }
             .padding(12)
             .background(.ultraThinMaterial)
@@ -62,16 +62,17 @@ struct ActivityEntryView: View {
             Text(timeString)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .frame(width: 60, alignment: .leading)
+                .frame(minWidth: 50, alignment: .leading)
 
-            Text(event.sessionId.prefix(8))
-                .font(.caption)
+            Text(String(event.sessionId.prefix(8)))
+                .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.tertiary)
-                .frame(width: 70, alignment: .leading)
+                .frame(minWidth: 60, alignment: .leading)
 
             Text(event.details)
                 .font(.callout)
                 .lineLimit(1)
+                .truncationMode(.tail)
 
             Spacer()
 
@@ -79,6 +80,7 @@ struct ActivityEntryView: View {
                 Text("$\(cost)")
                     .font(.caption)
                     .foregroundStyle(.orange)
+                    .lineLimit(1)
             }
         }
         .padding(.vertical, 4)

@@ -1,12 +1,83 @@
 // MARK: - Multi-Session Launcher (Step 14.1)
-// Launch N agent sessions in parallel with one click.
+//
+// Uses a standalone NSPanel instead of SwiftUI .sheet to guarantee
+// proper first-responder/TextField focus on macOS.
 
 import SwiftUI
+import AppKit
 import AgentsBoardCore
 
-struct LauncherView: View {
-    @Bindable var viewModel: LauncherViewModel
-    @Environment(\.dismiss) private var dismiss
+// MARK: - Keyable Window (NSWindow that always accepts key status)
+
+private class KeyableWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
+// MARK: - Window-based Launcher Presenter
+
+public final class LauncherPresenter {
+    private var window: NSWindow?
+    private var onLaunch: (([LaunchEntry]) -> Void)?
+
+    public init() {}
+
+    public func present(onLaunch: @escaping ([LaunchEntry]) -> Void) {
+        // If already showing, bring to front
+        if let existing = window, existing.isVisible {
+            existing.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        self.onLaunch = onLaunch
+
+        let view = LauncherContentView(onLaunch: { [weak self] entries in
+            onLaunch(entries)
+            self?.dismiss()
+        }, onCancel: { [weak self] in
+            self?.dismiss()
+        })
+
+        let hostingView = NSHostingView(rootView: view)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 550, height: 480)
+
+        // Use NSWindow (not NSPanel) with canBecomeKey override
+        let window = KeyableWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 550, height: 480),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Launch Sessions"
+        window.contentView = hostingView
+        window.minSize = NSSize(width: 450, height: 350)
+        window.maxSize = NSSize(width: 700, height: 700)
+        window.center()
+        window.isReleasedWhenClosed = false
+
+        // Critical: make this the key window so TextFields receive keyboard input
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        // Force first responder to the hosting view so SwiftUI can manage focus
+        window.makeFirstResponder(hostingView)
+
+        self.window = window
+    }
+
+    public func dismiss() {
+        window?.close()
+        window = nil
+    }
+}
+
+// MARK: - Launcher Content (SwiftUI view hosted in NSPanel)
+
+private struct LauncherContentView: View {
+    let onLaunch: ([LaunchEntry]) -> Void
+    let onCancel: () -> Void
+
+    @State private var entries: [LaunchEntryData] = [LaunchEntryData()]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -16,250 +87,155 @@ struct LauncherView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
                 Spacer()
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
+                Button("Cancel", action: onCancel)
             }
             .padding(16)
 
-            // Tabs
-            Picker("Mode", selection: $viewModel.mode) {
-                Text("Manual").tag(LaunchMode.manual)
-                Text("Config").tag(LaunchMode.config)
-                Text("Smart").tag(LaunchMode.smart)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 16)
+            Divider()
 
-            Divider().padding(.top, 8)
-
-            // Content
+            // Entry list
             ScrollView {
-                switch viewModel.mode {
-                case .manual:
-                    ManualLaunchContent(viewModel: viewModel)
-                case .config:
-                    ConfigLaunchContent(viewModel: viewModel)
-                case .smart:
-                    SmartLaunchContent(viewModel: viewModel)
+                VStack(spacing: 16) {
+                    ForEach($entries) { $entry in
+                        LaunchEntryRow(entry: $entry, canRemove: entries.count > 1) {
+                            entries.removeAll { $0.id == entry.id }
+                        }
+                    }
                 }
+                .padding(16)
             }
 
             Divider()
 
             // Footer
-            HStack {
-                Text("\(viewModel.sessionCount) sessions to launch")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Launch All") {
-                    viewModel.launch()
-                    dismiss()
+            LauncherFooter(entries: $entries, onAdd: {
+                entries.append(LaunchEntryData())
+            }, onLaunch: {
+                let valid = entries.filter { !$0.command.trimmingCharacters(in: .whitespaces).isEmpty }
+                guard !valid.isEmpty else { return }
+                let launchEntries = valid.map { data in
+                    var entry = LaunchEntry()
+                    entry.name = data.name
+                    entry.provider = data.provider
+                    entry.command = data.command
+                    entry.workDir = data.workDir
+                    return entry
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.sessionCount == 0)
-                .keyboardShortcut(.defaultAction)
-            }
-            .padding(16)
+                onLaunch(launchEntries)
+            })
         }
-        .frame(width: 600, height: 500)
     }
 }
 
-// MARK: - Manual Launch
+// MARK: - Footer
 
-struct ManualLaunchContent: View {
-    @Bindable var viewModel: LauncherViewModel
+private struct LauncherFooter: View {
+    @Binding var entries: [LaunchEntryData]
+    let onAdd: () -> Void
+    let onLaunch: () -> Void
+
+    private var validCount: Int {
+        entries.filter { !$0.command.trimmingCharacters(in: .whitespaces).isEmpty }.count
+    }
 
     var body: some View {
-        VStack(spacing: 12) {
-            ForEach(viewModel.manualEntries.indices, id: \.self) { index in
-                ManualSessionEntry(entry: $viewModel.manualEntries[index]) {
-                    viewModel.removeManualEntry(at: index)
-                }
-            }
-
-            Button {
-                viewModel.addManualEntry()
-            } label: {
+        HStack {
+            Button(action: onAdd) {
                 Label("Add Session", systemImage: "plus")
             }
             .buttonStyle(.borderless)
+
+            Spacer()
+
+            if validCount == 0 {
+                Text("Enter a command to launch")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+
+            Button("Launch \(validCount > 0 ? "(\(validCount))" : "")", action: onLaunch)
+                .buttonStyle(.borderedProminent)
+                .disabled(validCount == 0)
         }
         .padding(16)
     }
 }
 
-struct ManualSessionEntry: View {
-    @Binding var entry: LaunchEntry
+// MARK: - Entry Row
+
+private struct LaunchEntryRow: View {
+    @Binding var entry: LaunchEntryData
+    let canRemove: Bool
     let onRemove: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            Picker("Provider", selection: $entry.provider) {
-                ForEach(AgentProvider.allCases, id: \.self) { p in
-                    Text(p.rawValue.capitalized).tag(p)
+        GroupBox {
+            VStack(alignment: .leading, spacing: 10) {
+                LabeledContent("Name") {
+                    TextField("Session name", text: $entry.name)
+                        .textFieldStyle(.roundedBorder)
                 }
-            }
-            .frame(maxWidth: 120)
-
-            TextField("Command", text: $entry.command)
-                .textFieldStyle(.roundedBorder)
-
-            TextField("Working Dir", text: $entry.workDir)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 200)
-
-            Button { onRemove() } label: {
-                Image(systemName: "minus.circle")
-                    .foregroundStyle(.red)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-}
-
-// MARK: - Config Launch
-
-struct ConfigLaunchContent: View {
-    @Bindable var viewModel: LauncherViewModel
-
-    var body: some View {
-        VStack(spacing: 8) {
-            if viewModel.configEntries.isEmpty {
-                Text("No sessions defined in agentsboard.yml")
-                    .foregroundStyle(.secondary)
-                    .padding(40)
-            } else {
-                ForEach(viewModel.configEntries.indices, id: \.self) { index in
-                    HStack {
-                        Toggle(isOn: $viewModel.configEntries[index].isEnabled) {
-                            VStack(alignment: .leading) {
-                                Text(viewModel.configEntries[index].name)
-                                    .font(.callout)
-                                Text(viewModel.configEntries[index].command)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                LabeledContent("Provider") {
+                    Picker("", selection: $entry.provider) {
+                        ForEach(AgentProvider.allCases, id: \.self) { p in
+                            Text(p.rawValue.capitalized).tag(p)
                         }
-                        Spacer()
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 4)
+                    .labelsHidden()
                 }
-            }
-        }
-        .padding(16)
-    }
-}
-
-// MARK: - Smart Launch
-
-struct SmartLaunchContent: View {
-    @Bindable var viewModel: LauncherViewModel
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("Describe your goal and let AI plan the sessions")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-
-            TextEditor(text: $viewModel.smartGoal)
-                .font(.body)
-                .frame(minHeight: 100)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.quaternary))
-
-            if viewModel.isPlanning {
-                ProgressView("Planning...")
-            }
-
-            Button("Generate Plan") {
-                viewModel.generateSmartPlan()
-            }
-            .disabled(viewModel.smartGoal.isEmpty || viewModel.isPlanning)
-
-            if !viewModel.smartPlanEntries.isEmpty {
-                Divider()
-                Text("Proposed Sessions")
-                    .font(.callout)
-                    .fontWeight(.medium)
-                ForEach(viewModel.smartPlanEntries, id: \.name) { entry in
+                LabeledContent("Command") {
+                    TextField("e.g. claude, aider, codex", text: $entry.command)
+                        .textFieldStyle(.roundedBorder)
+                }
+                LabeledContent("Directory") {
                     HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                        Text(entry.name)
-                            .font(.callout)
+                        TextField("Working directory (optional)", text: $entry.workDir)
+                            .textFieldStyle(.roundedBorder)
+                        Button {
+                            let panel = NSOpenPanel()
+                            panel.canChooseFiles = false
+                            panel.canChooseDirectories = true
+                            panel.allowsMultipleSelection = false
+                            panel.message = "Select working directory"
+                            if panel.runModal() == .OK, let url = panel.url {
+                                entry.workDir = url.path
+                            }
+                        } label: {
+                            Image(systemName: "folder")
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+                if canRemove {
+                    HStack {
                         Spacer()
-                        Text(entry.provider.rawValue)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Button("Remove", role: .destructive, action: onRemove)
+                            .buttonStyle(.borderless)
                     }
                 }
             }
+            .padding(4)
         }
-        .padding(16)
     }
 }
 
-// MARK: - Models
+// MARK: - Data Model
 
-enum LaunchMode { case manual, config, smart }
-
-struct LaunchEntry: Identifiable {
+struct LaunchEntryData: Identifiable {
     let id = UUID()
     var name: String = ""
     var provider: AgentProvider = .claude
     var command: String = ""
     var workDir: String = ""
-    var isEnabled: Bool = true
 }
 
-// MARK: - View Model
+// MARK: - Public LaunchEntry (for cross-module API)
 
-@Observable
-final class LauncherViewModel {
-    var mode: LaunchMode = .manual
-    var manualEntries: [LaunchEntry] = [LaunchEntry()]
-    var configEntries: [LaunchEntry] = []
-    var smartGoal: String = ""
-    var smartPlanEntries: [LaunchEntry] = []
-    var isPlanning: Bool = false
-
-    var onLaunch: (([LaunchEntry]) -> Void)?
-
-    var sessionCount: Int {
-        switch mode {
-        case .manual: return manualEntries.count
-        case .config: return configEntries.filter(\.isEnabled).count
-        case .smart: return smartPlanEntries.count
-        }
-    }
-
-    func addManualEntry() {
-        manualEntries.append(LaunchEntry())
-    }
-
-    func removeManualEntry(at index: Int) {
-        guard manualEntries.count > 1 else { return }
-        manualEntries.remove(at: index)
-    }
-
-    func generateSmartPlan() {
-        isPlanning = true
-        // In real impl, calls an AI agent to plan
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-            self?.isPlanning = false
-        }
-    }
-
-    func launch() {
-        let entries: [LaunchEntry]
-        switch mode {
-        case .manual: entries = manualEntries
-        case .config: entries = configEntries.filter(\.isEnabled)
-        case .smart: entries = smartPlanEntries
-        }
-        onLaunch?(entries)
-    }
+public struct LaunchEntry: Identifiable {
+    public let id = UUID()
+    public var name: String = ""
+    public var provider: AgentProvider = .claude
+    public var command: String = ""
+    public var workDir: String = ""
+    public var isEnabled: Bool = true
 }

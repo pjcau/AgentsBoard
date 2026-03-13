@@ -39,7 +39,7 @@ struct EditorView: View {
                                 Text("\(index + 1)")
                                     .font(.system(.caption, design: .monospaced))
                                     .foregroundStyle(.tertiary)
-                                    .frame(width: 50, alignment: .trailing)
+                                    .frame(minWidth: 36, alignment: .trailing)
                                     .padding(.trailing, 8)
 
                                 // Line content

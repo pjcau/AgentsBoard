@@ -79,7 +79,7 @@ struct MenuBarView: View {
             }
             .padding(8)
         }
-        .frame(width: 320)
+        .frame(minWidth: 280, idealWidth: 320, maxWidth: 360)
     }
 }
 
@@ -117,10 +117,12 @@ struct MenuBarSessionRow: View {
                 Text(session.name)
                     .font(.caption)
                     .lineLimit(1)
+                    .truncationMode(.tail)
                 Text(session.lastAction)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
+                    .truncationMode(.tail)
             }
 
             Spacer()

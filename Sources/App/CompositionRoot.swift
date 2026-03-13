@@ -21,6 +21,16 @@ final class CompositionRoot {
     private(set) var hookEventParser: any HookEventParsing
     private(set) var recorder: any SessionRecordable
 
+    // MARK: - UI Services
+
+    private(set) var commandRegistry: CommandRegistry
+    private(set) var activityLogger: ActivityLogger
+    private(set) var layoutEngine: LayoutEngine
+
+    // MARK: - Navigation State
+
+    let navigationState = NavigationState()
+
     // MARK: - Initialization
 
     init() {
@@ -43,18 +53,171 @@ final class CompositionRoot {
         let projectManager = ProjectManagerStub(persistence: persistence)
         self.projectManager = projectManager
 
-        let fleetManager = FleetManagerStub()
+        let fleetManager = FleetManager()
         self.fleetManager = fleetManager
 
         self.hookEventParser = HookEventParserStub()
         self.recorder = RecorderStub()
+
+        // Phase 4: UI services
+        let commandRegistry = CommandRegistry()
+        self.commandRegistry = commandRegistry
+
+        self.activityLogger = ActivityLogger(persistence: persistence)
+        self.layoutEngine = LayoutEngine()
+
+        // Phase 5: Register default commands
+        registerDefaultCommands()
+    }
+
+    // MARK: - Session Launch
+
+    func launchSession(command: String, name: String, workdir: String?) {
+        let session = TerminalSession()
+        do {
+            try session.launch(command: command, workingDirectory: workdir, environment: nil)
+        } catch {
+            print("[AgentsBoard] Failed to launch session: \(error)")
+            // Still register the session so user sees the error
+            let agentSession = AgentSessionAdapter(
+                terminal: session,
+                name: name.isEmpty ? "Session" : name,
+                projectPath: workdir
+            )
+            agentSession.state = .error
+            agentSession.outputText = "Failed to launch: \(error.localizedDescription)"
+            fleetManager.register(agentSession)
+            return
+        }
+
+        // Create an AgentSession and register with fleet
+        let agentSession = AgentSessionAdapter(
+            terminal: session,
+            name: name.isEmpty ? "Session" : name,
+            projectPath: workdir
+        )
+        fleetManager.register(agentSession)
+        navigationState.selectedSessionId = agentSession.sessionId
+
+        activityLogger.log(ActivityEvent(
+            sessionId: agentSession.sessionId,
+            eventType: .stateChange,
+            details: "Session launched: \(name) — \(command)"
+        ))
+    }
+
+    // MARK: - Default Commands
+
+    private func registerDefaultCommands() {
+        let nav = navigationState
+
+        commandRegistry.register(command: PaletteCommand(
+            id: "session.new", title: "New Session",
+            subtitle: "Launch a new agent session",
+            icon: "plus.circle", category: .session, shortcut: "⌘N",
+            action: { nav.showingLauncher = true }
+        ))
+
+        commandRegistry.register(command: PaletteCommand(
+            id: "nav.fleet", title: "Fleet Overview",
+            subtitle: "View all agents at a glance",
+            icon: "square.grid.2x2", category: .navigation, shortcut: "⇧⌘F",
+            action: { nav.showingFleetOverview = true }
+        ))
+
+        commandRegistry.register(command: PaletteCommand(
+            id: "nav.activity", title: "Activity Log",
+            subtitle: "View recent events",
+            icon: "list.bullet", category: .navigation, shortcut: "⌘L",
+            action: { nav.showingActivityLog = true }
+        ))
+
+        commandRegistry.register(command: PaletteCommand(
+            id: "nav.palette", title: "Command Palette",
+            subtitle: "Search commands",
+            icon: "magnifyingglass", category: .navigation, shortcut: "⌘K",
+            action: { nav.showingCommandPalette.toggle() }
+        ))
+
+        for mode in LayoutMode.allCases {
+            commandRegistry.register(command: PaletteCommand(
+                id: "layout.\(mode)", title: "Layout: \(String(describing: mode).capitalized)",
+                subtitle: nil,
+                icon: "rectangle.split.3x1", category: .layout, shortcut: nil,
+                action: { nav.layoutMode = mode }
+            ))
+        }
+    }
+}
+
+// MARK: - Agent Session Adapter
+
+/// Bridges TerminalSession to AgentSessionRepresentable for fleet registration.
+/// Also reads PTY output and exposes it for the UI.
+@Observable
+final class AgentSessionAdapter: AgentSessionRepresentable {
+    let sessionId: String
+    var agentInfo: AgentInfo?
+    var state: AgentState = .working
+    var totalCost: Decimal = 0
+    var projectPath: String?
+    let startTime: Date
+    var lastEventTime: Date?
+    var outputText: String = ""
+
+    private let terminal: TerminalSession
+    private var readSource: DispatchSourceRead?
+
+    init(terminal: TerminalSession, name: String, projectPath: String?) {
+        self.terminal = terminal
+        self.sessionId = terminal.sessionId
+        self.projectPath = projectPath
+        self.startTime = Date()
+        self.lastEventTime = Date()
+        startReadingOutput()
+    }
+
+    deinit {
+        readSource?.cancel()
+    }
+
+    func sendInput(_ text: String) {
+        guard let data = text.data(using: .utf8) else { return }
+        terminal.sendInput(data)
+    }
+
+    /// Reads output from the PTY file descriptor and appends to outputText.
+    private func startReadingOutput() {
+        guard let pty = terminal.ptyProcess else { return }
+        let fd = pty.fileDescriptor
+        let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: .main)
+        source.setEventHandler { [weak self] in
+            guard let self else { return }
+            var buffer = [UInt8](repeating: 0, count: 8192)
+            let bytesRead = read(fd, &buffer, buffer.count)
+            if bytesRead > 0 {
+                if let chunk = String(bytes: buffer[0..<bytesRead], encoding: .utf8) {
+                    self.outputText += chunk
+                    // Keep only last 10000 chars to avoid unbounded growth
+                    if self.outputText.count > 10000 {
+                        self.outputText = String(self.outputText.suffix(8000))
+                    }
+                    self.lastEventTime = Date()
+                }
+            } else if bytesRead == 0 {
+                // EOF — process exited
+                self.state = .inactive
+                self.readSource?.cancel()
+                self.readSource = nil
+            }
+        }
+        source.setCancelHandler { /* cleanup */ }
+        source.resume()
+        self.readSource = source
     }
 }
 
 // MARK: - Stub implementations (replaced incrementally in later sprints)
-
-// These exist so the app compiles and launches with a window.
-// Each sprint replaces stubs with real implementations.
 
 private final class YAMLParserImpl: YAMLParsing {
     func decode<T: Decodable>(_ type: T.Type, from yaml: String) throws -> T {
@@ -119,15 +282,6 @@ private final class ProjectManagerStub: ProjectManaging {
     func remove(projectId: String) throws {}
     func project(byId id: String) -> ProjectInfo? { nil }
     func project(byPath path: String) -> ProjectInfo? { nil }
-}
-
-private final class FleetManagerStub: FleetManaging {
-    var sessions: [any AgentSessionRepresentable] = []
-    var stats: FleetStats = .empty
-    var onFleetChange: (() -> Void)?
-    func register(_ session: any AgentSessionRepresentable) {}
-    func unregister(sessionId: String) {}
-    func session(byId id: String) -> (any AgentSessionRepresentable)? { nil }
 }
 
 private final class HookEventParserStub: HookEventParsing {

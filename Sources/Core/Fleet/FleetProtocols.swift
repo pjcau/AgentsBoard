@@ -23,6 +23,13 @@ public protocol AgentSessionRepresentable: AnyObject {
     var projectPath: String? { get }
     var startTime: Date { get }
     var lastEventTime: Date? { get }
+    var outputText: String { get }
+    func sendInput(_ text: String)
+}
+
+extension AgentSessionRepresentable {
+    public var outputText: String { "" }
+    public func sendInput(_ text: String) {}
 }
 
 /// Aggregated statistics for the fleet.

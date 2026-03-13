@@ -6,17 +6,17 @@ import SwiftUI
 import AgentsBoardCore
 
 /// Protocol for layout strategies (OCP: add layouts without modifying engine).
-protocol LayoutProviding {
+public protocol LayoutProviding {
     func layout(cardCount: Int, in size: CGSize) -> [CardFrame]
 }
 
 /// Computed frame for a single card.
-struct CardFrame: Identifiable {
-    let id: Int
-    let rect: CGRect
-    let isFocused: Bool
+public struct CardFrame: Identifiable {
+    public let id: Int
+    public let rect: CGRect
+    public let isFocused: Bool
 
-    init(id: Int, rect: CGRect, isFocused: Bool = false) {
+    public init(id: Int, rect: CGRect, isFocused: Bool = false) {
         self.id = id
         self.rect = rect
         self.isFocused = isFocused
@@ -24,11 +24,11 @@ struct CardFrame: Identifiable {
 }
 
 /// Calculates card frames based on the active layout mode.
-final class LayoutEngine {
+public final class LayoutEngine {
 
     private var layouts: [LayoutMode: any LayoutProviding] = [:]
 
-    init() {
+    public init() {
         layouts[.single] = SingleLayout()
         layouts[.list] = ListLayout()
         layouts[.twoColumn] = TwoColumnLayout()
@@ -37,11 +37,11 @@ final class LayoutEngine {
     }
 
     /// Register a custom layout (OCP).
-    func register(_ layout: any LayoutProviding, for mode: LayoutMode) {
+    public func register(_ layout: any LayoutProviding, for mode: LayoutMode) {
         layouts[mode] = layout
     }
 
-    func computeFrames(cardCount: Int, in size: CGSize, mode: LayoutMode) -> [CardFrame] {
+    public func computeFrames(cardCount: Int, in size: CGSize, mode: LayoutMode) -> [CardFrame] {
         guard let layout = layouts[mode] else { return [] }
         return layout.layout(cardCount: cardCount, in: size)
     }
