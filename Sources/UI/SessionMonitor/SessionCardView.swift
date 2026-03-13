@@ -3,8 +3,25 @@
 import SwiftUI
 import AgentsBoardCore
 
+// MARK: - Session Tab
+
+enum SessionTab: String, CaseIterable {
+    case terminal = "Terminal"
+    case files = "Files"
+
+    var icon: String {
+        switch self {
+        case .terminal: return "terminal"
+        case .files: return "folder"
+        }
+    }
+}
+
 struct SessionCardView: View {
     let viewModel: SessionCardViewModel
+    @State private var selectedTab: SessionTab = .terminal
+    @State private var terminalId = UUID()
+    @State private var fileVM = FileExplorerViewModel()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -16,37 +33,27 @@ struct SessionCardView: View {
                 state: viewModel.state
             )
 
-            // Real terminal emulator (SwiftTerm) — handles TUI rendering + keyboard input
-            if let command = viewModel.launchCommand {
-                TerminalEmulatorView(
-                    command: command,
-                    workingDirectory: viewModel.workDir,
-                    onProcessExit: { _ in
-                        viewModel.state = .inactive
-                    }
-                )
-                .frame(minHeight: 120)
-            } else {
-                // Fallback for sessions without a command
-                ScrollView(.vertical) {
-                    if viewModel.cleanOutput.isEmpty {
-                        Text(viewModel.state == .working ? "Waiting for output..." : "No output")
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundColor(.gray)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .padding(8)
-                    } else {
-                        Text(viewModel.cleanOutput)
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundColor(.green)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .padding(8)
-                            .textSelection(.enabled)
-                    }
+            // Tab content
+            Group {
+                switch selectedTab {
+                case .terminal:
+                    terminalContent
+                case .files:
+                    filesContent
                 }
-                .background(Color.black)
-                .frame(minHeight: 80)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Tab bar
+            SessionTabBar(
+                selectedTab: $selectedTab,
+                onRefreshTerminal: {
+                    terminalId = UUID()
+                },
+                onOpenDiff: {
+                    DiffWindowPresenter.shared.present(workDir: viewModel.workDir, sessionName: viewModel.name)
+                }
+            )
 
             // Footer
             SessionCardFooter(
@@ -63,6 +70,238 @@ struct SessionCardView: View {
         )
         .contextMenu {
             SessionContextMenu(sessionId: viewModel.sessionId)
+        }
+        .onAppear {
+            if let dir = viewModel.workDir, !dir.isEmpty {
+                fileVM.loadDirectory(at: dir)
+            }
+        }
+    }
+
+    // MARK: - Tab Content
+
+    @ViewBuilder
+    private var terminalContent: some View {
+        if let command = viewModel.launchCommand {
+            TerminalEmulatorView(
+                command: command,
+                workingDirectory: viewModel.workDir,
+                onProcessExit: { _ in
+                    viewModel.state = .inactive
+                }
+            )
+            .id(terminalId)
+            .frame(minHeight: 120)
+        } else {
+            ScrollView(.vertical) {
+                if viewModel.cleanOutput.isEmpty {
+                    Text(viewModel.state == .working ? "Waiting for output..." : "No output")
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(8)
+                } else {
+                    Text(viewModel.cleanOutput)
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundColor(.green)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(8)
+                        .textSelection(.enabled)
+                }
+            }
+            .background(Color.black)
+            .frame(minHeight: 80)
+        }
+    }
+
+    @ViewBuilder
+    private var filesContent: some View {
+        if viewModel.workDir != nil, !viewModel.workDir!.isEmpty {
+            FileExplorerView(viewModel: fileVM)
+        } else {
+            Text("No working directory set")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+// MARK: - Session Tab Bar
+
+struct SessionTabBar: View {
+    @Binding var selectedTab: SessionTab
+    let onRefreshTerminal: () -> Void
+    let onOpenDiff: () -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(SessionTab.allCases, id: \.self) { tab in
+                Button {
+                    selectedTab = tab
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: tab.icon)
+                            .font(.caption)
+                        Text(tab.rawValue)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(selectedTab == tab ? Color.accentColor.opacity(0.15) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(selectedTab == tab ? .primary : .secondary)
+            }
+
+            // Diff button — opens separate window
+            Button {
+                onOpenDiff()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.caption)
+                    Text("Diff")
+                        .font(.caption)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+
+            Spacer()
+
+            if selectedTab == .terminal {
+                Button {
+                    onRefreshTerminal()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+                .help("Restart terminal")
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.ultraThinMaterial)
+    }
+}
+
+// MARK: - Diff Window Presenter (opens diff in a separate modal window)
+
+final class DiffWindowPresenter {
+    static let shared = DiffWindowPresenter()
+    private var window: NSWindow?
+
+    func present(workDir: String?, sessionName: String) {
+        guard let workDir, !workDir.isEmpty else { return }
+
+        // If already showing, bring to front
+        if let existing = window, existing.isVisible {
+            existing.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        let diffView = DiffWindowContentView(workDir: workDir, sessionName: sessionName, onClose: { [weak self] in
+            self?.dismiss()
+        })
+
+        let hostingView = NSHostingView(rootView: diffView)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 800, height: 600)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+            styleMask: [.titled, .closable, .resizable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Diff — \(sessionName)"
+        window.contentView = hostingView
+        window.minSize = NSSize(width: 500, height: 350)
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        self.window = window
+    }
+
+    func dismiss() {
+        window?.close()
+        window = nil
+    }
+}
+
+// MARK: - Diff Window Content
+
+private struct DiffWindowContentView: View {
+    let workDir: String
+    let sessionName: String
+    let onClose: () -> Void
+
+    @State private var diffVM = DiffReviewViewModel()
+    @State private var loading = true
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if loading {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("Loading diff...")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if diffVM.hunks.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 36))
+                        .foregroundStyle(.green)
+                    Text("No changes detected")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                    Text(workDir)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                DiffReviewView(viewModel: diffVM)
+            }
+        }
+        .onAppear { loadDiff() }
+    }
+
+    private func loadDiff() {
+        loading = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            let process = Process()
+            let pipe = Pipe()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            process.arguments = ["diff", "--no-color"]
+            process.currentDirectoryURL = URL(fileURLWithPath: workDir)
+            process.standardOutput = pipe
+            process.standardError = FileHandle.nullDevice
+
+            do {
+                try process.run()
+                process.waitUntilExit()
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                let output = String(data: data, encoding: .utf8) ?? ""
+
+                DispatchQueue.main.async {
+                    let parser = DiffParser()
+                    let hunks = parser.parse(unifiedDiff: output)
+                    diffVM.fileName = workDir.components(separatedBy: "/").last ?? "Workspace"
+                    diffVM.hunks = hunks
+                    loading = false
+                }
+            } catch {
+                DispatchQueue.main.async { loading = false }
+            }
         }
     }
 }

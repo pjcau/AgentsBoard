@@ -18,7 +18,7 @@ mkdir -p "$APP_BUNDLE/Contents/MacOS"
 mkdir -p "$APP_BUNDLE/Contents/Resources"
 
 # Copy binary
-cp ".build/arm64-apple-macosx/debug/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+cp ".build/debug/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 
 # Copy icon if exists
 if [ -f "Sources/App/Resources/AppIcon.icns" ]; then
@@ -62,6 +62,9 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << PLIST
 </dict>
 </plist>
 PLIST
+
+# Ad-hoc code sign (required for macOS to trust the binary)
+codesign --force --deep --sign - "$APP_BUNDLE" 2>/dev/null
 
 echo "▸ Done! Run with:"
 echo "  open $APP_BUNDLE"
