@@ -5,15 +5,23 @@ import AgentsBoardCore
 
 struct SidebarView: View {
     @Bindable var viewModel: SidebarViewModel
+    var onNewSession: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
-            // Search field
+            // Search field + New Session button
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
                 TextField("Search sessions...", text: $viewModel.searchText)
                     .textFieldStyle(.plain)
+                Spacer()
+                Button(action: { onNewSession?() }) {
+                    Image(systemName: "plus")
+                        .font(.body)
+                }
+                .buttonStyle(.borderless)
+                .help("New Session (Cmd+N)")
             }
             .padding(8)
             .background(.ultraThinMaterial)

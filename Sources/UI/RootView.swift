@@ -79,10 +79,21 @@ public struct RootView: View {
 
     public var body: some View {
         NavigationSplitView {
-            SidebarView(viewModel: sidebarVM)
-                .frame(minWidth: 180, idealWidth: 220, maxWidth: 320)
+            SidebarView(viewModel: sidebarVM, onNewSession: {
+                nav.showingLauncher = true
+            })
+            .frame(minWidth: 180, idealWidth: 220, maxWidth: 320)
         } detail: {
             detailContent
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: { nav.showingLauncher = true }) {
+                    Label("New Session", systemImage: "plus")
+                }
+                .keyboardShortcut("n", modifiers: .command)
+                .help("Launch new session (Cmd+N)")
+            }
         }
         // Launcher uses NSPanel — no .sheet needed
         .onChange(of: nav.showingLauncher) { _, show in
@@ -162,9 +173,6 @@ public struct RootView: View {
                         SessionCardView(viewModel: vm)
                             .frame(width: frame.rect.width, height: frame.rect.height)
                             .position(x: frame.rect.midX, y: frame.rect.midY)
-                            .onTapGesture {
-                                nav.selectedSessionId = session.sessionId
-                            }
                     }
                 }
             }
