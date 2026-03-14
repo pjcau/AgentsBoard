@@ -12,6 +12,7 @@ public final class NavigationState {
     public var showingActivityLog = false
     public var showingCommandPalette = false
     public var showingBottomTerminal = false
+    public var showingSettings = false
     public var selectedSessionId: String?
     public var layoutMode: LayoutMode = .fleet
 
@@ -133,7 +134,14 @@ public struct RootView: View {
             .frame(minWidth: 180, idealWidth: 220, maxWidth: 320)
             .onAppear { wireSidebarEdit() }
         } detail: {
-            detailContent
+            HStack(spacing: 0) {
+                detailContent
+                if nav.showingSettings {
+                    Divider()
+                    SettingsView()
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
+            }
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -191,6 +199,19 @@ public struct RootView: View {
                         .font(.system(size: 14))
                         .help("Appearance: \(current.label)")
                 }
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        nav.showingSettings.toggle()
+                    }
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 14))
+                        .foregroundStyle(nav.showingSettings ? Color.accentColor : .secondary)
+                }
+                .keyboardShortcut(",", modifiers: .command)
+                .help("Settings (Cmd+,)")
             }
         }
         .preferredColorScheme((AppearanceMode(rawValue: appearanceMode) ?? .auto).colorScheme)

@@ -130,18 +130,32 @@ struct SessionCardView: View {
 
     // MARK: - Tab Content
 
+    @AppStorage("useMetalRenderer") private var useMetalRenderer: Bool = true
+
     @ViewBuilder
     private var terminalContent: some View {
         if let command = viewModel.launchCommand {
-            TerminalEmulatorView(
-                command: command,
-                workingDirectory: viewModel.workDir,
-                onProcessExit: { _ in
-                    viewModel.state = .inactive
-                }
-            )
-            .id(terminalId)
-            .frame(minHeight: 120)
+            if useMetalRenderer && isMetalAvailable() {
+                MetalTerminalView(
+                    command: command,
+                    workingDirectory: viewModel.workDir,
+                    onProcessExit: { _ in
+                        viewModel.state = .inactive
+                    }
+                )
+                .id(terminalId)
+                .frame(minHeight: 120)
+            } else {
+                TerminalEmulatorView(
+                    command: command,
+                    workingDirectory: viewModel.workDir,
+                    onProcessExit: { _ in
+                        viewModel.state = .inactive
+                    }
+                )
+                .id(terminalId)
+                .frame(minHeight: 120)
+            }
         } else {
             ScrollView(.vertical) {
                 if viewModel.cleanOutput.isEmpty {
