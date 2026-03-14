@@ -151,6 +151,31 @@ private struct LauncherContentView: View {
             // Footer
             LauncherFooter(entries: $entries, onAdd: {
                 entries.append(LaunchEntryData())
+            }, onAddFromRepo: {
+                let panel = NSOpenPanel()
+                panel.canChooseFiles = false
+                panel.canChooseDirectories = true
+                panel.allowsMultipleSelection = true
+                panel.message = L10n.Launcher.selectRepo
+                panel.prompt = L10n.Launcher.openRepo
+                if panel.runModal() == .OK {
+                    for url in panel.urls {
+                        if let repo = detectRepo(at: url.path) {
+                            var entry = LaunchEntryData()
+                            entry.name = repo.name
+                            entry.provider = repo.suggestedProvider
+                            entry.command = repo.suggestedProvider.defaultCommand
+                            entry.workDir = repo.path
+                            entries.append(entry)
+                        } else {
+                            // Not a git repo — still add with directory
+                            var entry = LaunchEntryData()
+                            entry.name = url.lastPathComponent
+                            entry.workDir = url.path
+                            entries.append(entry)
+                        }
+                    }
+                }
             }, onLaunch: {
                 let valid = entries.filter { !$0.command.trimmingCharacters(in: .whitespaces).isEmpty }
                 guard !valid.isEmpty else { return }
@@ -173,6 +198,7 @@ private struct LauncherContentView: View {
 private struct LauncherFooter: View {
     @Binding var entries: [LaunchEntryData]
     let onAdd: () -> Void
+    let onAddFromRepo: () -> Void
     let onLaunch: () -> Void
 
     private var validCount: Int {
@@ -182,19 +208,24 @@ private struct LauncherFooter: View {
     var body: some View {
         HStack {
             Button(action: onAdd) {
-                Label("Add Session", systemImage: "plus")
+                Label(L10n.Launcher.addSession, systemImage: "plus")
+            }
+            .buttonStyle(.borderless)
+
+            Button(action: onAddFromRepo) {
+                Label(L10n.Launcher.fromRepo, systemImage: "folder.badge.gearshape")
             }
             .buttonStyle(.borderless)
 
             Spacer()
 
             if validCount == 0 {
-                Text("Enter a command to launch")
+                Text(L10n.Launcher.enterCommand)
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
 
-            Button("Launch \(validCount > 0 ? "(\(validCount))" : "")", action: onLaunch)
+            Button(L10n.Launcher.launch(validCount > 0 ? "(\(validCount))" : ""), action: onLaunch)
                 .buttonStyle(.borderedProminent)
                 .disabled(validCount == 0)
         }
@@ -247,16 +278,27 @@ private struct LaunchEntryRow: View {
                 }
                 LabeledContent("Directory") {
                     HStack {
-                        TextField("Working directory (optional)", text: $entry.workDir)
+                        TextField(L10n.Session.workdirPlaceholder, text: $entry.workDir)
                             .textFieldStyle(.roundedBorder)
                         Button {
                             let panel = NSOpenPanel()
                             panel.canChooseFiles = false
                             panel.canChooseDirectories = true
                             panel.allowsMultipleSelection = false
-                            panel.message = "Select working directory"
+                            panel.message = L10n.Session.selectWorkdir
                             if panel.runModal() == .OK, let url = panel.url {
                                 entry.workDir = url.path
+                                // Auto-detect repo info
+                                if let repo = detectRepo(at: url.path) {
+                                    if entry.name.isEmpty || entry.name == entry.provider.displayName {
+                                        entry.name = repo.name
+                                    }
+                                    entry.provider = repo.suggestedProvider
+                                    if commandAutoFilled || entry.command.isEmpty {
+                                        entry.command = repo.suggestedProvider.defaultCommand
+                                        commandAutoFilled = true
+                                    }
+                                }
                             }
                         } label: {
                             Image(systemName: "folder")
@@ -275,6 +317,48 @@ private struct LaunchEntryRow: View {
             .padding(4)
         }
     }
+}
+
+// MARK: - Repository Detection
+
+private struct RepoInfo {
+    let name: String
+    let path: String
+    let branch: String?
+    let suggestedProvider: AgentProvider
+}
+
+private func detectRepo(at path: String) -> RepoInfo? {
+    let url = URL(fileURLWithPath: path)
+    let gitDir = url.appendingPathComponent(".git")
+    guard FileManager.default.fileExists(atPath: gitDir.path) else { return nil }
+
+    let repoName = url.lastPathComponent
+
+    // Detect branch
+    let branch: String? = {
+        let headFile = gitDir.appendingPathComponent("HEAD")
+        guard let content = try? String(contentsOf: headFile, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines) else { return nil }
+        if content.hasPrefix("ref: refs/heads/") {
+            return String(content.dropFirst("ref: refs/heads/".count))
+        }
+        return String(content.prefix(8))
+    }()
+
+    // Detect provider from project files
+    let provider: AgentProvider = {
+        let fm = FileManager.default
+        if fm.fileExists(atPath: url.appendingPathComponent("CLAUDE.md").path) ||
+           fm.fileExists(atPath: url.appendingPathComponent(".claude").path) {
+            return .claude
+        }
+        if fm.fileExists(atPath: url.appendingPathComponent(".aider.conf.yml").path) {
+            return .aider
+        }
+        return .claude // default
+    }()
+
+    return RepoInfo(name: repoName, path: path, branch: branch, suggestedProvider: provider)
 }
 
 // MARK: - Data Model

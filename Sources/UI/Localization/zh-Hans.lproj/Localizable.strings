@@ -190,3 +190,7 @@
 "appearance.light" = "浅色";
 "appearance.dark" = "深色";
 "appearance.auto" = "自动";
+
+"launcher.from_repo" = "从仓库创建";
+"launcher.select_repo" = "选择一个Git仓库来创建会话";
+"launcher.open_repo" = "打开";

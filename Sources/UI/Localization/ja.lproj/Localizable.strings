@@ -190,3 +190,7 @@
 "appearance.light" = "ライト";
 "appearance.dark" = "ダーク";
 "appearance.auto" = "自動";
+
+"launcher.from_repo" = "リポジトリから";
+"launcher.select_repo" = "セッションを作成するGitリポジトリを選択";
+"launcher.open_repo" = "開く";

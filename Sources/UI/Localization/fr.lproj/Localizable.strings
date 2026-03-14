@@ -162,3 +162,7 @@
 "appearance.light" = "Clair";
 "appearance.dark" = "Sombre";
 "appearance.auto" = "Automatique";
+
+"launcher.from_repo" = "Depuis un depot";
+"launcher.select_repo" = "Selectionnez un depot Git pour creer une session";
+"launcher.open_repo" = "Ouvrir";

@@ -214,3 +214,7 @@
 "appearance.light" = "Light";
 "appearance.dark" = "Dark";
 "appearance.auto" = "Auto";
+
+"launcher.from_repo" = "From Repository";
+"launcher.select_repo" = "Select a Git repository to create a session";
+"launcher.open_repo" = "Open";

@@ -190,3 +190,7 @@
 "appearance.light" = "Claro";
 "appearance.dark" = "Oscuro";
 "appearance.auto" = "Automático";
+
+"launcher.from_repo" = "Desde repositorio";
+"launcher.select_repo" = "Selecciona un repositorio Git para crear una sesion";
+"launcher.open_repo" = "Abrir";

@@ -162,3 +162,7 @@
 "appearance.light" = "Chiaro";
 "appearance.dark" = "Scuro";
 "appearance.auto" = "Automatico";
+
+"launcher.from_repo" = "Da Repository";
+"launcher.select_repo" = "Seleziona un repository Git per creare una sessione";
+"launcher.open_repo" = "Apri";
