@@ -11,6 +11,7 @@ public final class NavigationState {
     public var showingFleetOverview = false
     public var showingActivityLog = false
     public var showingCommandPalette = false
+    public var showingBottomTerminal = false
     public var selectedSessionId: String?
     public var layoutMode: LayoutMode = .fleet
 
@@ -109,6 +110,18 @@ public struct RootView: View {
                 .keyboardShortcut("n", modifiers: .command)
                 .help("Launch new session (Cmd+N)")
             }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        nav.showingBottomTerminal.toggle()
+                    }
+                } label: {
+                    Label("Terminal", systemImage: nav.showingBottomTerminal ? "rectangle.bottomhalf.inset.filled" : "rectangle.bottomhalf.inset.filled")
+                        .foregroundStyle(nav.showingBottomTerminal ? Color.accentColor : .secondary)
+                }
+                .keyboardShortcut("t", modifiers: .command)
+                .help("Toggle terminal panel (Cmd+T)")
+            }
         }
         // Launcher uses NSPanel — no .sheet needed
         .onChange(of: nav.showingLauncher) { _, show in
@@ -144,10 +157,20 @@ public struct RootView: View {
         if fleet.sessions.isEmpty {
             emptyState
         } else {
-            VStack(spacing: 0) {
-                layoutBar
-                Divider()
-                sessionGrid
+            GeometryReader { geo in
+                let terminalHeight = geo.size.height / 4
+                VStack(spacing: 0) {
+                    layoutBar
+                    Divider()
+                    sessionGrid
+                        .frame(height: nav.showingBottomTerminal
+                               ? geo.size.height - terminalHeight - 36 // 36 for layoutBar
+                               : nil)
+                    if nav.showingBottomTerminal {
+                        bottomTerminalPanel
+                            .frame(height: terminalHeight)
+                    }
+                }
             }
         }
     }
@@ -315,6 +338,64 @@ public struct RootView: View {
             cardViewModels[session.sessionId] = vm
         }
         return vm
+    }
+
+    // MARK: - Bottom Terminal Panel
+
+    @State private var bottomTerminalId = UUID()
+
+    private var bottomTerminalPanel: some View {
+        VStack(spacing: 0) {
+            // Drag handle + header
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.secondary.opacity(0.4))
+                    .frame(width: 36, height: 4)
+
+                Text("Terminal")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Button {
+                    bottomTerminalId = UUID()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+                .help("Restart terminal")
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        nav.showingBottomTerminal = false
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+                .help("Close terminal")
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(.ultraThinMaterial)
+
+            Divider()
+
+            // Terminal emulator — uses user's default shell
+            TerminalEmulatorView(
+                command: ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh",
+                workingDirectory: nil,
+                onProcessExit: { _ in
+                    bottomTerminalId = UUID()
+                }
+            )
+            .id(bottomTerminalId)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     // MARK: - Sidebar Edit Wiring
