@@ -198,6 +198,18 @@ public struct RootView: View {
                 commandPaletteOverlay
             }
         }
+        // Sync sidebar selection → nav (when user clicks in sidebar)
+        .onChange(of: sidebarVM.selectedSessionId) { _, newId in
+            if nav.selectedSessionId != newId {
+                nav.selectedSessionId = newId
+            }
+        }
+        // Sync nav selection → sidebar (when user clicks a card in grid)
+        .onChange(of: nav.selectedSessionId) { _, newId in
+            if sidebarVM.selectedSessionId != newId {
+                sidebarVM.selectedSessionId = newId
+            }
+        }
     }
 
     // MARK: - Detail Content
@@ -300,9 +312,19 @@ public struct RootView: View {
                     if index < frames.count {
                         let frame = frames[index]
                         let vm = viewModel(for: session)
+                        let isSelected = nav.selectedSessionId == session.sessionId
                         SessionCardView(viewModel: vm)
                             .frame(width: frame.rect.width, height: frame.rect.height)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .strokeBorder(Color.green, lineWidth: isSelected ? 3 : 0)
+                            )
+                            .shadow(color: isSelected ? .green.opacity(0.3) : .clear, radius: 6)
                             .position(x: frame.rect.midX, y: frame.rect.midY)
+                            .onTapGesture {
+                                nav.selectedSessionId = session.sessionId
+                                sidebarVM.selectedSessionId = session.sessionId
+                            }
                     }
                 }
             }

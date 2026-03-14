@@ -68,29 +68,48 @@ Sources/
 ├── App/              # Composition root, window management, lifecycle
 │                     # Wires protocols → concrete types (DIP)
 ├── Core/             # Domain logic, zero UI dependencies
+│   ├── Activity/     # Structured event logging (per-session timeline)
+│   │                 # ActivityLogger, ActivityEvent, ActivityEventType
 │   ├── Agent/        # Agent detection, state machine, provider abstraction
 │   │                 # Protocols: AgentDetectable, AgentStateObservable,
 │   │                 #            AgentCostReportable, AgentControllable
-│   ├── Terminal/     # PTY management, VT parsing, session lifecycle
-│   │                 # Protocol: TerminalSessionManaging
-│   ├── Rendering/    # Metal renderer, glyph atlas, viewport scissoring
-│   │                 # Protocol: TerminalRenderable
-│   ├── Fleet/        # Fleet aggregation, priority sorting, cross-project state
-│   │                 # Protocol: FleetManaging
-│   ├── Hooks/        # Claude Code hooks, structured JSON events
-│   │                 # Protocol: HookEventReceiving
-│   ├── MCP/          # JSON-RPC 2.0 server for programmatic control
-│   │                 # Protocol: MCPToolRegistrable
-│   ├── Config/       # YAML parsing, user/project config, theme loading
+│   ├── Commands/     # Command palette backend, fuzzy matching
+│   │                 # CommandRegistry, PaletteCommand, FuzzyMatcher
+│   ├── Config/       # YAML parsing, user/project config
 │   │                 # Protocol: ConfigProviding
-│   ├── Project/      # Project model, session grouping, persistence
-│   │                 # Protocol: ProjectManaging
+│   ├── Context/      # Cross-session context sharing, knowledge graph
+│   │                 # ContextBridge, KnowledgeGraph
+│   ├── Control/      # Unix socket control server for external automation
+│   │                 # ControlServer
 │   ├── CostTracking/ # Per-session, per-task, fleet-wide cost aggregation
 │   │                 # Protocol: CostAggregating, CostSource
-│   └── Recording/    # Asciicast v2 recording and playback
-│                     # Protocol: SessionRecordable
+│   │                 # CostEngine, TokenPricing, CostAlertConfig
+│   ├── Fleet/        # Fleet aggregation, priority sorting, cross-project state
+│   │                 # Protocols: FleetManaging, AgentSessionRepresentable, SessionEditable
+│   ├── Hooks/        # Claude Code hooks, structured JSON events
+│   │                 # Protocol: HookEventReceiving
+│   ├── Keybindings/  # Configurable keyboard shortcuts
+│   │                 # Protocol: KeybindingManaging
+│   ├── MCP/          # JSON-RPC 2.0 server for programmatic control
+│   │                 # Protocol: MCPToolRegistrable
+│   ├── Notifications/# macOS native notifications for alerts
+│   │                 # Protocol: NotificationManaging
+│   ├── Orchestration/# Smart mode, session remix, verification chains
+│   │                 # SessionRemixer, TaskRouter, ChainExecutor
+│   ├── Persistence/  # Database layer (GRDB wrapper)
+│   │                 # Protocol: PersistenceProviding
+│   ├── Project/      # Project model, session grouping
+│   │                 # Protocol: ProjectManaging, SessionGrouping
+│   ├── Recording/    # Asciicast v2 recording and playback
+│   │                 # Protocol: SessionRecordable
+│   ├── Rendering/    # Metal renderer, glyph atlas, viewport scissoring
+│   │                 # Protocol: TerminalRenderable
+│   ├── Terminal/     # PTY management, VT parsing, session lifecycle
+│   │                 # Protocol: TerminalSessionManaging
+│   └── Theme/        # Theme engine, built-in themes, hot-reload
+│                     # ThemeEngine, TerminalTheme, BuiltInTheme
 ├── UI/               # All SwiftUI views and AppKit bridges
-│   ├── SessionMonitor/   # Real-time session cards with embedded terminal
+│   ├── SessionMonitor/   # Session cards, SwiftTerm terminal, RemixSheet
 │   ├── FleetOverview/    # Cross-project agent dashboard
 │   ├── ActivityLog/      # Structured timeline of agent actions
 │   ├── DiffReview/       # Split-pane diff viewer with change requests
@@ -98,9 +117,21 @@ Sources/
 │   ├── Editor/           # Syntax-highlighted code editor
 │   ├── WebPreview/       # Framework-detecting web preview with live-reload
 │   ├── CommandPalette/   # Cmd+K global command interface
-│   ├── Themes/           # Theme engine, hot-reload
+│   ├── Launcher/         # NSPanel-based multi-session launcher + Smart Mode + Clone
+│   ├── Layout/           # Layout engine (Single, List, 2-Col, 3-Col, Grid)
+│   ├── Localization/     # L10n localization strings
+│   ├── MenuBar/          # NSStatusItem status bar widget with cost-per-provider
+│   ├── Sidebar/          # Session list, worktree manager, session editing
+│   ├── Search/           # Global search (Cmd+F)
+│   ├── DragDrop/         # Drag-and-drop session reordering
+│   ├── Mermaid/          # Mermaid diagram rendering view
 │   ├── PlanView/         # Plan mode rendering with annotations
-│   └── DiagramRenderer/  # Mermaid diagram rendering
+│   ├── PlanMode/         # Plan mode interaction
+│   ├── Recording/        # Recording playback UI
+│   ├── Themes/           # Theme selection UI
+│   ├── VimMode/          # Vim-style command mode
+│   ├── Simulator/        # iOS Simulator integration
+│   └── DiagramRenderer/  # Generic diagram rendering
 └── CLI/              # agentsctl command-line control tool
 ```
 
@@ -111,8 +142,8 @@ This project is designed to be built by Claude with specialized sub-agents. Each
 ### Sub-Agent Roles
 
 #### 1. `macos-core` — macOS & System Agent
-**Domain**: App lifecycle, Metal rendering, PTY management, kqueue multiplexing, code signing
-**Files**: `Sources/App/`, `Sources/Core/Terminal/`, `Sources/Core/Rendering/`
+**Domain**: App lifecycle, Metal rendering, PTY management, kqueue multiplexing, keybindings, code signing
+**Files**: `Sources/App/`, `Sources/Core/Terminal/`, `Sources/Core/Rendering/`, `Sources/Core/Keybindings/`
 **Skills needed**: Swift, AppKit, Metal, POSIX, kqueue, SwiftTerm
 **SOLID focus**: SRP for renderer vs. PTY vs. app lifecycle. OCP via `TerminalRenderable` protocol. DIP — renderer depends on protocol, not SwiftTerm directly.
 **Rules**:
@@ -124,8 +155,8 @@ This project is designed to be built by Claude with specialized sub-agents. Each
 - SwiftTerm wrapped behind `TerminalSessionManaging` protocol
 
 #### 2. `backend-core` — Backend Logic Agent
-**Domain**: Agent detection, hooks integration, MCP server, cost tracking, fleet aggregation, recording, config
-**Files**: `Sources/Core/Agent/`, `Sources/Core/Hooks/`, `Sources/Core/MCP/`, `Sources/Core/Fleet/`, `Sources/Core/CostTracking/`, `Sources/Core/Recording/`, `Sources/Core/Config/`, `Sources/Core/Project/`
+**Domain**: Agent detection, hooks integration, MCP server, cost tracking, fleet aggregation, recording, config, orchestration, notifications, context sharing
+**Files**: `Sources/Core/Agent/`, `Sources/Core/Hooks/`, `Sources/Core/MCP/`, `Sources/Core/Fleet/`, `Sources/Core/CostTracking/`, `Sources/Core/Recording/`, `Sources/Core/Config/`, `Sources/Core/Project/`, `Sources/Core/Activity/`, `Sources/Core/Commands/`, `Sources/Core/Context/`, `Sources/Core/Control/`, `Sources/Core/Notifications/`, `Sources/Core/Orchestration/`, `Sources/Core/Persistence/`, `Sources/Core/Theme/`
 **Skills needed**: Swift, JSON-RPC, Unix sockets, JSONL parsing, SQLite
 **SOLID focus**: ISP — split `AgentProvider` into 4 narrow protocols. OCP — new providers via protocol conformance only. DIP — GRDB wrapped behind `PersistenceProviding` protocol.
 **Rules**:
@@ -139,9 +170,9 @@ This project is designed to be built by Claude with specialized sub-agents. Each
 - No switch/case on provider type anywhere — use polymorphism
 
 #### 3. `frontend-ui` — Frontend & UI Agent
-**Domain**: All SwiftUI views, layout system, command palette, themes, diff review, file explorer, editor
-**Files**: `Sources/UI/`
-**Skills needed**: SwiftUI, AppKit bridging, syntax highlighting, diff rendering, Mermaid.js
+**Domain**: All SwiftUI views, layout system, command palette, themes, diff review, file explorer, editor, launcher, sidebar, status bar widget, search, vim mode, localization
+**Files**: `Sources/UI/` (all 23 subdirectories)
+**Skills needed**: SwiftUI, AppKit bridging (NSPanel, NSStatusItem), syntax highlighting, diff rendering, Mermaid.js, SwiftTerm
 **SOLID focus**: SRP — each view has ONE job. DIP — views depend on view-model protocols from Core, not concrete types. ISP — views consume only the protocol slices they need.
 **Rules**:
 - Views consume @Observable models from Core — no business logic in views
@@ -175,6 +206,11 @@ This project is designed to be built by Claude with specialized sub-agents. Each
 - **Fleet-first**: The default view is fleet overview, not a single session. We assume developers run 3-10 agents simultaneously.
 - **Programmable**: MCP server + CLI means AgentsBoard can be controlled by other agents, enabling meta-orchestration.
 - **Record everything**: Every session can be recorded for post-mortems, demos, or onboarding.
+- **Smart Mode**: TaskRouter classifies task descriptions and suggests the best provider/model with confidence scores. Learns from user overrides.
+- **Session Remix**: Fork a session into an isolated git worktree with context transfer (summary, last N actions, or full transcript). Launches a new agent in the worktree automatically.
+- **Status bar native**: Real NSStatusItem in the macOS status bar showing fleet cost with per-provider breakdown, always visible.
+- **Localization-ready**: All user-facing strings go through L10n for future multi-language support.
+- **Bottom terminal**: Slide-up terminal panel (Cmd+T) at 1/4 height for quick shell access without leaving the app.
 
 ## Commands
 
