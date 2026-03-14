@@ -7,11 +7,15 @@ import AgentsBoardCore
 
 enum SessionTab: String, CaseIterable {
     case terminal = "Terminal"
+    case activity = "Activity"
+    case info = "Info"
     case files = "Files"
 
     var icon: String {
         switch self {
         case .terminal: return "terminal"
+        case .activity: return "clock"
+        case .info: return "info.circle"
         case .files: return "folder"
         }
     }
@@ -40,6 +44,10 @@ struct SessionCardView: View {
                 switch selectedTab {
                 case .terminal:
                     terminalContent
+                case .activity:
+                    SessionActivityContent(viewModel: viewModel)
+                case .info:
+                    SessionInfoContent(viewModel: viewModel)
                 case .files:
                     filesContent
                 }
@@ -153,6 +161,146 @@ struct SessionCardView: View {
     }
 }
 
+// MARK: - Activity Tab Content
+
+struct SessionActivityContent: View {
+    let viewModel: SessionCardViewModel
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 2) {
+                if viewModel.activityEntries.isEmpty {
+                    Text("No activity yet")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 20)
+                } else {
+                    Text("Recent Activity")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.top, 8)
+
+                    ForEach(viewModel.activityEntries) { entry in
+                        HStack(spacing: 8) {
+                            Text(entry.timeString)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                                .frame(width: 60, alignment: .leading)
+
+                            Image(systemName: entry.icon)
+                                .font(.caption)
+                                .foregroundStyle(entry.color)
+                                .frame(width: 14)
+
+                            Text(entry.detail)
+                                .font(.caption)
+                                .lineLimit(2)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+        }
+        .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
+    }
+}
+
+// MARK: - Info Tab Content
+
+struct SessionInfoContent: View {
+    let viewModel: SessionCardViewModel
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+
+                // Provider section
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 8) {
+                        infoRow(label: "Provider", value: viewModel.provider?.displayName ?? "Unknown")
+                        infoRow(label: "Model", value: viewModel.modelName ?? "—")
+                        infoRow(label: "State", value: viewModel.state.rawValue.capitalized, color: stateColor)
+                    }
+                } label: {
+                    Label("Provider", systemImage: "cpu")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                }
+
+                // Session section
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 8) {
+                        infoRow(label: "Name", value: viewModel.name)
+                        infoRow(label: "Session ID", value: String(viewModel.sessionId.prefix(12)))
+                        infoRow(label: "Command", value: viewModel.launchCommand ?? "—", mono: true)
+                        infoRow(label: "Duration", value: viewModel.duration)
+                        infoRow(label: "Cost", value: viewModel.cost)
+                    }
+                } label: {
+                    Label("Session", systemImage: "terminal")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                }
+
+                // Project section
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 8) {
+                        infoRow(label: "Directory", value: shortenPath(viewModel.workDir ?? "—"), mono: true)
+                        if let branch = viewModel.gitBranch {
+                            infoRow(label: "Branch", value: branch, mono: true, color: .cyan)
+                        }
+                    }
+                } label: {
+                    Label("Project", systemImage: "folder")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                }
+            }
+            .padding(10)
+        }
+        .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
+    }
+
+    private var stateColor: Color {
+        switch viewModel.state {
+        case .working: return .green
+        case .needsInput: return .yellow
+        case .error: return .red
+        case .inactive: return .gray
+        }
+    }
+
+    private func infoRow(label: String, value: String, mono: Bool = false, color: Color? = nil) -> some View {
+        HStack {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 70, alignment: .leading)
+            Text(value)
+                .font(mono ? .system(.caption, design: .monospaced) : .caption)
+                .foregroundStyle(color ?? .primary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .textSelection(.enabled)
+        }
+    }
+
+    private func shortenPath(_ path: String) -> String {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        if path.hasPrefix(home) {
+            return "~" + path.dropFirst(home.count)
+        }
+        return path
+    }
+}
+
 // MARK: - Session Tab Bar
 
 struct SessionTabBar: View {
@@ -161,19 +309,19 @@ struct SessionTabBar: View {
     let onOpenDiff: () -> Void
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 2) {
             ForEach(SessionTab.allCases, id: \.self) { tab in
                 Button {
                     selectedTab = tab
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 3) {
                         Image(systemName: tab.icon)
-                            .font(.caption)
+                            .font(.system(size: 9))
                         Text(tab.rawValue)
-                            .font(.caption)
+                            .font(.system(size: 10))
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
                     .background(selectedTab == tab ? Color.accentColor.opacity(0.15) : Color.clear)
                     .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
@@ -185,14 +333,14 @@ struct SessionTabBar: View {
             Button {
                 onOpenDiff()
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     Image(systemName: "doc.text.magnifyingglass")
-                        .font(.caption)
+                        .font(.system(size: 9))
                     Text("Diff")
-                        .font(.caption)
+                        .font(.system(size: 10))
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
@@ -210,8 +358,8 @@ struct SessionTabBar: View {
                 .help("Restart terminal")
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
         .background(.ultraThinMaterial)
     }
 }
@@ -551,6 +699,8 @@ final class SessionCardViewModel {
     var lastOutput: String = ""
     var launchCommand: String?
     var workDir: String?
+    var gitBranch: String?
+    var activityEntries: [SessionActivityEntry] = []
     var onRemix: (() -> Void)?
     var onKill: (() -> Void)?
     var onRestart: (() -> Void)?
@@ -588,6 +738,7 @@ final class SessionCardViewModel {
         self.lastOutput = session.outputText
         self.launchCommand = session.launchCommand
         self.workDir = session.projectPath
+        self.gitBranch = session.gitBranch
         startRefreshing()
     }
 
@@ -610,15 +761,31 @@ final class SessionCardViewModel {
         }
     }
 
+    private var lastState: AgentState = .inactive
+
     private func refresh() {
         guard let session else {
             refreshTimer?.invalidate()
             return
         }
-        state = session.state
+        let newState = session.state
+        if newState != lastState {
+            addActivity(icon: newState.activityIcon, color: newState.activityColor, detail: newState.rawValue.capitalized)
+            lastState = newState
+        }
+        state = newState
         cost = Self.formatCost(session.totalCost)
         duration = Self.formatDuration(since: session.startTime)
         lastOutput = session.outputText
+        gitBranch = session.gitBranch
+    }
+
+    func addActivity(icon: String, color: Color, detail: String) {
+        let entry = SessionActivityEntry(time: Date(), icon: icon, color: color, detail: detail)
+        activityEntries.insert(entry, at: 0)
+        if activityEntries.count > 100 {
+            activityEntries.removeLast()
+        }
     }
 
     /// Strips ANSI/VT100/xterm escape sequences from terminal output.
@@ -696,5 +863,43 @@ final class SessionCardViewModel {
         let minutes = Int(interval / 60)
         if minutes < 60 { return "\(minutes)m" }
         return "\(minutes / 60)h \(minutes % 60)m"
+    }
+}
+
+// MARK: - Activity Entry
+
+struct SessionActivityEntry: Identifiable {
+    let id = UUID()
+    let time: Date
+    let icon: String
+    let color: Color
+    let detail: String
+
+    var timeString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: time)
+    }
+}
+
+// MARK: - AgentState Activity Helpers
+
+private extension AgentState {
+    var activityIcon: String {
+        switch self {
+        case .working: return "hammer.fill"
+        case .needsInput: return "questionmark.circle.fill"
+        case .error: return "xmark.circle.fill"
+        case .inactive: return "circle.fill"
+        }
+    }
+
+    var activityColor: Color {
+        switch self {
+        case .working: return .green
+        case .needsInput: return .yellow
+        case .error: return .red
+        case .inactive: return .gray
+        }
     }
 }
