@@ -170,6 +170,7 @@ layout: fleet
 | Toggle Sidebar | `Cmd+B` |
 | Focus Session | `Cmd+\` |
 | Next/Prev Session | `Cmd+]` / `Cmd+[` |
+| Toggle Terminal Panel | `Cmd+T` |
 | Command Mode (vim) | `Ctrl+Space` |
 | Font Zoom | `Cmd+=` / `Cmd+-` |
 
@@ -177,19 +178,37 @@ layout: fleet
 
 ```
 Sources/
-├── App/              # Entry point, window management
-├── Core/             # Domain logic (zero UI dependencies)
+├── App/              # Entry point, composition root, window management
+├── Core/             # Domain logic (zero UI dependencies) — 19 modules
+│   ├── Activity/     # Event logging, structured timeline
 │   ├── Agent/        # Provider abstraction, state detection
-│   ├── Terminal/     # PTY, VT parsing, session lifecycle
-│   ├── Rendering/    # Metal renderer, glyph atlas
-│   ├── Fleet/        # Fleet aggregation, priority sorting
+│   ├── Commands/     # Command palette backend, fuzzy matching
+│   ├── Config/       # YAML config parsing
+│   ├── Context/      # Cross-session context sharing
+│   ├── Control/      # Unix socket control server
+│   ├── CostTracking/ # Cost aggregation, pricing models, alerts
+│   ├── Fleet/        # Fleet aggregation, session management
 │   ├── Hooks/        # Claude Code hooks integration
+│   ├── Keybindings/  # Configurable keyboard shortcuts
 │   ├── MCP/          # JSON-RPC 2.0 server
-│   ├── Config/       # YAML config, theme loading
-│   ├── Project/      # Project model, persistence
-│   ├── CostTracking/ # Cost aggregation engine
-│   └── Recording/    # Asciicast v2 recording
-├── UI/               # SwiftUI views + AppKit bridges
+│   ├── Notifications/# macOS native notifications
+│   ├── Orchestration/# Smart mode, session remix, verification chains
+│   ├── Persistence/  # Database layer (GRDB)
+│   ├── Project/      # Project model, session grouping
+│   ├── Recording/    # Asciicast v2 recording & playback
+│   ├── Rendering/    # Metal renderer, glyph atlas
+│   ├── Terminal/     # PTY, VT parsing, session lifecycle
+│   └── Theme/        # Theme engine, built-in themes
+├── UI/               # SwiftUI views + AppKit bridges — 23 modules
+│   ├── SessionMonitor/   # Session cards with SwiftTerm terminal
+│   ├── Launcher/         # Multi-session launcher + Smart Mode + Clone
+│   ├── Sidebar/          # Session list, worktree manager, editing
+│   ├── MenuBar/          # Status bar widget (cost-per-provider)
+│   ├── FleetOverview/    # Fleet dashboard
+│   ├── CommandPalette/   # Cmd+K command interface
+│   ├── DiffReview/       # Split-pane diff viewer
+│   ├── Search/           # Global search
+│   ├── ... and 15 more   # Editor, FileExplorer, Themes, VimMode, etc.
 └── CLI/              # agentsctl command-line tool
 ```
 
