@@ -109,11 +109,13 @@ final class CompositionRoot {
         print("[LaunchSession] Creating session: \(name) cmd=\(command) workdir=\(workdir ?? "nil")")
 
         let session = TerminalSession()
+        // Store nil for empty commands — prevents TerminalEmulatorView from spawning a PTY
+        let effectiveCommand = command.trimmingCharacters(in: .whitespaces).isEmpty ? nil : command
         let agentSession = AgentSessionAdapter(
             terminal: session,
             name: name.isEmpty ? "Session" : name,
             projectPath: workdir,
-            command: command
+            command: effectiveCommand
         )
 
         print("[LaunchSession] Registering session \(agentSession.sessionId) in fleet")

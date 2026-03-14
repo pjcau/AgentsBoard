@@ -136,9 +136,11 @@ public struct RootView: View {
         } detail: {
             HStack(spacing: 0) {
                 detailContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if nav.showingSettings {
                     Divider()
                     SettingsView()
+                        .frame(width: 300)
                         .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
             }
@@ -154,22 +156,22 @@ public struct RootView: View {
             #if DEBUG
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
+                    // Placeholder sessions — no PTY process spawned (empty command)
+                    let base = fleet.sessions.count
                     for i in 1...10 {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.1) {
-                            var entry = LaunchEntry()
-                            entry.name = "Claude \(i)"
-                            entry.provider = .claude
-                            entry.command = "claude"
-                            onLaunchEntries([entry])
-                        }
+                        var entry = LaunchEntry()
+                        entry.name = "Debug \(base + i)"
+                        entry.provider = .claude
+                        entry.command = "" // Empty = no terminal process
+                        onLaunchEntries([entry])
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         fleet.refresh()
                     }
                 }) {
                     Label("10x Debug", systemImage: "square.grid.3x3")
                 }
-                .help("Debug: Create 10 Claude sessions")
+                .help("Debug: Create 10 placeholder sessions (no process)")
             }
             #endif
             ToolbarItem(placement: .primaryAction) {
@@ -349,7 +351,7 @@ public struct RootView: View {
             if needsScroll {
                 // Scrollable grid for many sessions — cards keep minimum height
                 let columns = columnsForMode(nav.layoutMode, width: geo.size.width)
-                let minCardHeight: CGFloat = 280
+                let minCardHeight: CGFloat = 340
                 ScrollViewReader { proxy in
                     ScrollView(.vertical) {
                         LazyVGrid(columns: columns, spacing: 8) {
@@ -358,6 +360,7 @@ public struct RootView: View {
                                 let isSelected = nav.selectedSessionId == session.sessionId
                                 SessionCardView(viewModel: vm)
                                     .frame(minHeight: minCardHeight)
+                                    .clipped()
                                     .id(session.sessionId)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 8)
@@ -394,6 +397,7 @@ public struct RootView: View {
                             let isSelected = nav.selectedSessionId == session.sessionId
                             SessionCardView(viewModel: vm)
                                 .frame(width: frame.rect.width, height: frame.rect.height)
+                                .clipped()
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
                                         .strokeBorder(Color.green, lineWidth: isSelected ? 3 : 0)
@@ -412,7 +416,7 @@ public struct RootView: View {
     }
 
     private func columnsForMode(_ mode: LayoutMode, width: CGFloat) -> [GridItem] {
-        let minWidth: CGFloat = 320
+        let minWidth: CGFloat = 380
         switch mode {
         case .single:
             return [GridItem(.flexible(minimum: minWidth))]
