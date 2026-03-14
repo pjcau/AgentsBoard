@@ -159,11 +159,15 @@ final class FileExplorerViewModel {
         onFileSelected?(path)
     }
 
+    private var currentPath: String?
+
     func refresh() {
-        // Re-scan workspace directory
+        guard let path = currentPath else { return }
+        rootNodes = scanDirectory(path)
     }
 
     func loadDirectory(at path: String) {
+        currentPath = path
         rootName = (path as NSString).lastPathComponent
         rootNodes = scanDirectory(path)
     }

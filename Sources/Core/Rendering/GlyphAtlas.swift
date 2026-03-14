@@ -13,7 +13,8 @@ final class GlyphAtlas {
     private(set) var texture: MTLTexture?
     private(set) var cellWidth: CGFloat = 0
     private(set) var cellHeight: CGFloat = 0
-    private(set) var glyphPositions: [Character: GlyphPosition] = [:]
+    /// Keyed by Unicode codepoint (UInt32) for O(1) lookup from TerminalCell.codepoint.
+    private(set) var glyphPositions: [UInt32: GlyphPosition] = [:]
 
     private let device: MTLDevice
     private var currentFont: CTFont?
@@ -78,7 +79,8 @@ final class GlyphAtlas {
             let x = CGFloat(col) * cellWidth
             let y = CGFloat(atlasHeight) - CGFloat(row + 1) * cellHeight + CTFontGetDescent(font)
 
-            let char = Character(UnicodeScalar(charCode)!)
+            let scalar = UnicodeScalar(charCode)!
+            let char = Character(scalar)
             let string = String(char) as CFString
             let attrString = CFAttributedStringCreate(
                 nil,
@@ -90,7 +92,9 @@ final class GlyphAtlas {
             context.textPosition = CGPoint(x: x, y: y)
             CTLineDraw(line, context)
 
-            glyphPositions[char] = GlyphPosition(
+            // Key by codepoint (UInt32) so MetalRenderer can look up directly
+            // from TerminalCell.codepoint without creating a Character.
+            glyphPositions[UInt32(charCode)] = GlyphPosition(
                 u: Float(col) / Float(cols),
                 v: Float(row) / Float(rows),
                 width: 1.0 / Float(cols),

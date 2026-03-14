@@ -638,9 +638,9 @@ struct MemoryBudgetTests {
         print("  📦 Scrollback (10K lines): \(scrollbackBytes / 1024)KB")
         print("  📦 Total per session: \(String(format: "%.2f", totalPerSessionMB))MB")
 
-        // TARGET: <10MB — CURRENT: ~24MB (TerminalCell is 32 bytes due to Swift Character being 16 bytes)
-        // FIX: Use UInt32 codepoint instead of Character, or reduce scrollback to 4K lines
-        #expect(totalPerSessionMB < 30.0, "Per-session memory \(String(format: "%.2f", totalPerSessionMB))MB — current ceiling: <30MB (target: <10MB)")
+        // TerminalCell is now 16 bytes (codepoint: UInt32 + fg: UInt32 + bg: UInt32 + attrs: UInt8 + 3 pad bytes)
+        // 80×24 grid + 10K scrollback = (1920 + 800000) cells × 16 bytes ≈ 12.5MB
+        #expect(totalPerSessionMB < 14.0, "Per-session memory \(String(format: "%.2f", totalPerSessionMB))MB — budget: <14MB (target: <10MB with 4K scrollback)")
     }
 
     @Test func fiftySessionsTotalMemory() {
@@ -649,8 +649,10 @@ struct MemoryBudgetTests {
         let totalMB = Double(perSessionBytes * 50) / (1024 * 1024)
 
         print("  📦 50 sessions total: \(String(format: "%.1f", totalMB))MB (grid + scrollback only)")
-        // TARGET: <500MB — CURRENT: ~1.2GB (consequence of 32-byte TerminalCell × 10K scrollback)
-        #expect(totalMB < 1500, "50 sessions should be < 1500MB total: got \(String(format: "%.1f", totalMB))MB (target: <500MB)")
+        // TerminalCell is now 16 bytes; 50 sessions × ~12.5MB ≈ 625MB.
+        // With the compact layout the 50-session target of <500MB is within reach
+        // once scrollback is reduced to 4K lines. Current ceiling: <700MB.
+        #expect(totalMB < 700, "50 sessions should be < 700MB total: got \(String(format: "%.1f", totalMB))MB (target: <500MB with 4K scrollback)")
     }
 
     @Test func vertexDataSizePerFrame() {

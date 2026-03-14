@@ -2,8 +2,10 @@
 // Renders Mermaid diagrams from agent output using embedded web view.
 
 import SwiftUI
+import AppKit
 import AgentsBoardCore
 import WebKit
+import UniformTypeIdentifiers
 
 struct MermaidRendererView: View {
     @Bindable var viewModel: MermaidRendererViewModel
@@ -39,7 +41,7 @@ struct MermaidRendererView: View {
 
             // Mermaid web view
             if viewModel.hasContent {
-                MermaidWebView(definition: viewModel.mermaidSource, theme: viewModel.diagramTheme)
+                MermaidWebView(definition: viewModel.mermaidSource, theme: viewModel.diagramTheme, viewModel: viewModel)
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "chart.bar.doc.horizontal")
@@ -69,16 +71,19 @@ enum MermaidTheme: String, Sendable {
 struct MermaidWebView: NSViewRepresentable {
     let definition: String
     let theme: MermaidTheme
+    weak var viewModel: MermaidRendererViewModel?
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.setValue(false, forKey: "drawsBackground")
+        viewModel?.webView = webView
         loadMermaid(in: webView)
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
+        viewModel?.webView = webView
         loadMermaid(in: webView)
     }
 
@@ -150,7 +155,26 @@ final class MermaidRendererViewModel {
         mermaidSource = String(text[range])
     }
 
+    /// Reference to the web view for screenshot export. Set by MermaidWebView coordinator.
+    weak var webView: WKWebView?
+
     func exportAsPNG() {
-        // Export via web view screenshot
+        guard let webView else { return }
+
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = [.png]
+        savePanel.nameFieldStringValue = "diagram.png"
+        savePanel.canCreateDirectories = true
+
+        guard savePanel.runModal() == .OK, let url = savePanel.url else { return }
+
+        let config = WKSnapshotConfiguration()
+        webView.takeSnapshot(with: config) { image, error in
+            guard let image, error == nil else { return }
+            guard let tiffData = image.tiffRepresentation,
+                  let bitmapRep = NSBitmapImageRep(data: tiffData),
+                  let pngData = bitmapRep.representation(using: .png, properties: [:]) else { return }
+            try? pngData.write(to: url)
+        }
     }
 }

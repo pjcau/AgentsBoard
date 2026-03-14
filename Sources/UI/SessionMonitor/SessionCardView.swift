@@ -73,7 +73,12 @@ struct SessionCardView: View {
                 sessionId: viewModel.sessionId,
                 sessionName: viewModel.name,
                 projectPath: viewModel.workDir,
-                onRemix: viewModel.onRemix
+                onRemix: viewModel.onRemix,
+                onRename: viewModel.onRename,
+                onKill: viewModel.onKill,
+                onRestart: viewModel.onRestart,
+                onToggleRecording: viewModel.onToggleRecording,
+                isRecording: viewModel.isRecording
             )
         }
         .onAppear {
@@ -408,16 +413,29 @@ struct SessionContextMenu: View {
     let sessionName: String
     let projectPath: String?
     var onRemix: (() -> Void)?
+    var onRename: ((String) -> Void)?
+    var onKill: (() -> Void)?
+    var onRestart: (() -> Void)?
+    var onToggleRecording: (() -> Void)?
+    var isRecording: Bool = false
 
     var body: some View {
-        Button("Rename") { /* Step 5.2 */ }
-        Button("Kill Session") { /* Step 5.2 */ }
-        Button("Restart") { /* Step 5.2 */ }
+        Button("Rename...") {
+            onRename?(sessionName)
+        }
+        Button("Kill Session", role: .destructive) {
+            onKill?()
+        }
+        Button("Restart") {
+            onRestart?()
+        }
         Divider()
         if projectPath != nil, !(projectPath?.isEmpty ?? true) {
             Button("Remix to Worktree") { onRemix?() }
         }
-        Button("Start Recording") { /* Step 15.1 */ }
+        Button(isRecording ? "Stop Recording" : "Start Recording") {
+            onToggleRecording?()
+        }
         Divider()
         Button("Copy Session ID") {
             NSPasteboard.general.clearContents()
@@ -442,6 +460,11 @@ final class SessionCardViewModel {
     var launchCommand: String?
     var workDir: String?
     var onRemix: (() -> Void)?
+    var onKill: (() -> Void)?
+    var onRestart: (() -> Void)?
+    var onRename: ((String) -> Void)?
+    var onToggleRecording: (() -> Void)?
+    var isRecording: Bool = false
 
     /// Output with ANSI escape codes stripped for display
     var cleanOutput: String {

@@ -36,6 +36,7 @@ struct AgentsBoardApp: App {
                 activityLogger: compositionRoot.activityLogger,
                 layoutEngine: compositionRoot.layoutEngine,
                 navigationState: compositionRoot.navigationState,
+                recorder: compositionRoot.recorder,
                 taskRouter: compositionRoot.taskRouter,
                 onLaunchEntries: { entries in
                     for entry in entries {

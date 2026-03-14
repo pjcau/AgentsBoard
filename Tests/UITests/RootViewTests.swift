@@ -1,8 +1,20 @@
 // MARK: - UI Tests
 
 import Testing
+import Foundation
 @testable import AgentsBoardUI
 @testable import AgentsBoardCore
+
+// MARK: - Test Helpers (local to UI tests)
+
+private final class UITestPersistence: PersistenceProviding {
+    func save<T: Codable & Identifiable>(_ record: T, in table: String) throws {}
+    func fetch<T: Codable & Identifiable>(from table: String, id: String) throws -> T? { nil }
+    func fetchAll<T: Codable & Identifiable>(from table: String) throws -> [T] { [] }
+    func delete(from table: String, id: String) throws {}
+    func deleteAll(from table: String) throws {}
+    func query<T: Codable>(sql: String, arguments: [Any]) throws -> [T] { [] }
+}
 
 // MARK: - DiffParser Tests
 
@@ -275,5 +287,147 @@ struct MermaidRendererViewModelTests {
         let vm = MermaidRendererViewModel()
         vm.loadFromOutput("No mermaid here")
         #expect(!vm.hasContent)
+    }
+}
+
+// MARK: - SessionCardViewModel Action Tests
+
+@Suite("SessionCardViewModel Actions")
+struct SessionCardViewModelActionTests {
+    @Test func killCallback() {
+        let vm = SessionCardViewModel(id: "test-1", name: "Test")
+        vm.state = .working
+        var killed = false
+        vm.onKill = { killed = true }
+        vm.onKill?()
+        #expect(killed)
+    }
+
+    @Test func restartCallback() {
+        let vm = SessionCardViewModel(id: "test-1", name: "Test")
+        var restarted = false
+        vm.onRestart = { restarted = true }
+        vm.onRestart?()
+        #expect(restarted)
+    }
+
+    @Test func renameCallback() {
+        let vm = SessionCardViewModel(id: "test-1", name: "OldName")
+        var receivedName: String?
+        vm.onRename = { name in receivedName = name }
+        vm.onRename?("OldName")
+        #expect(receivedName == "OldName")
+    }
+
+    @Test func toggleRecordingCallback() {
+        let vm = SessionCardViewModel(id: "test-1", name: "Test")
+        #expect(!vm.isRecording)
+        var toggled = false
+        vm.onToggleRecording = { toggled = true }
+        vm.onToggleRecording?()
+        #expect(toggled)
+    }
+
+    @Test func initialRecordingState() {
+        let vm = SessionCardViewModel(id: "test-1", name: "Test")
+        #expect(!vm.isRecording)
+    }
+}
+
+// MARK: - GlobalSearchViewModel Tests
+
+@Suite("GlobalSearchViewModel")
+struct GlobalSearchViewModelTests {
+    @Test func emptyQueryClearsResults() {
+        let logger = ActivityLogger(persistence: UITestPersistence())
+        let vm = GlobalSearchViewModel(activityLogger: logger)
+        vm.query = ""
+        vm.search()
+        #expect(vm.results.isEmpty)
+    }
+
+    @Test func searchActivityScope() {
+        let logger = ActivityLogger(persistence: UITestPersistence())
+        logger.log(ActivityEvent(sessionId: "s1", eventType: .stateChange, details: "Session started"))
+        logger.log(ActivityEvent(sessionId: "s2", eventType: .error, details: "Build failed"))
+
+        let vm = GlobalSearchViewModel(activityLogger: logger)
+        vm.query = "started"
+        vm.scope = .activity
+        vm.search()
+        #expect(vm.results.count == 1)
+        #expect(vm.results[0].type == .activity)
+    }
+
+    @Test func searchAllScope() {
+        let logger = ActivityLogger(persistence: UITestPersistence())
+        logger.log(ActivityEvent(sessionId: "s1", eventType: .stateChange, details: "hello world"))
+
+        let vm = GlobalSearchViewModel(activityLogger: logger)
+        vm.query = "hello"
+        vm.scope = .all
+        vm.search()
+        #expect(!vm.results.isEmpty)
+    }
+
+    @Test func searchDurationTracked() {
+        let logger = ActivityLogger(persistence: UITestPersistence())
+        let vm = GlobalSearchViewModel(activityLogger: logger)
+        vm.query = "test"
+        vm.search()
+        #expect(vm.searchDuration != nil)
+    }
+
+    @Test func noResultsForUnmatchedQuery() {
+        let logger = ActivityLogger(persistence: UITestPersistence())
+        logger.log(ActivityEvent(sessionId: "s1", eventType: .stateChange, details: "hello"))
+
+        let vm = GlobalSearchViewModel(activityLogger: logger)
+        vm.query = "zzzznotfound"
+        vm.search()
+        #expect(vm.results.isEmpty)
+    }
+}
+
+// MARK: - FileExplorerViewModel Tests
+
+@Suite("FileExplorerViewModel")
+struct FileExplorerViewModelTests {
+    @Test func initialState() {
+        let vm = FileExplorerViewModel()
+        #expect(vm.rootNodes.isEmpty)
+        #expect(vm.selectedPath == nil)
+        #expect(vm.rootName == "Workspace")
+    }
+
+    @Test func selectFile() {
+        let vm = FileExplorerViewModel()
+        var selectedPath: String?
+        vm.onFileSelected = { path in selectedPath = path }
+        vm.selectFile("/test/file.swift")
+        #expect(vm.selectedPath == "/test/file.swift")
+        #expect(selectedPath == "/test/file.swift")
+    }
+
+    @Test func loadDirectory() {
+        let vm = FileExplorerViewModel()
+        // Use /tmp which always exists
+        vm.loadDirectory(at: "/tmp")
+        #expect(vm.rootName == "tmp")
+    }
+
+    @Test func refreshReloads() {
+        let vm = FileExplorerViewModel()
+        vm.loadDirectory(at: "/tmp")
+        let countBefore = vm.rootNodes.count
+        vm.refresh()
+        // After refresh, should still have nodes (same directory)
+        #expect(vm.rootNodes.count == countBefore)
+    }
+
+    @Test func refreshWithoutLoadDoesNotCrash() {
+        let vm = FileExplorerViewModel()
+        vm.refresh() // Should not crash
+        #expect(vm.rootNodes.isEmpty)
     }
 }
