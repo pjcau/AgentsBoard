@@ -443,6 +443,7 @@ private struct LauncherFooter: View {
             Button(L10n.Launcher.launch(validCount > 0 ? "(\(validCount))" : ""), action: onLaunch)
                 .buttonStyle(.borderedProminent)
                 .disabled(validCount == 0)
+                .accessibilityIdentifier("launchButton")
         }
         .padding(16)
     }

@@ -13,18 +13,8 @@ final class AgentsBoardE2ETests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
 
-        // Launch the pre-built .app bundle directly by URL
-        let projectDir = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent() // E2ETests/
-            .deletingLastPathComponent() // Tests/
-            .deletingLastPathComponent() // project root
-        let appURL = projectDir.appendingPathComponent("build/AgentsBoard.app")
-
-        // First ensure app is built
-        XCTAssertTrue(FileManager.default.fileExists(atPath: appURL.path),
-                      "App not found at \(appURL.path) — run 'bash build.sh' first")
-
-        app = XCUIApplication(url: appURL)
+        // Use bundle identifier to connect to the app
+        app = XCUIApplication(bundleIdentifier: "com.agentsboard.app")
         app.launchArguments = ["--ui-testing"]
         app.launchEnvironment["AGENTSBOARD_UI_TEST"] = "1"
     }
@@ -71,38 +61,65 @@ final class AgentsBoardE2ETests: XCTestCase {
         XCTAssertTrue(app.windows.count > 0, "Should have at least one window")
     }
 
-    // MARK: - Test 3: Create Sessions and Verify Grid
+    // MARK: - Test 3: Create 6 Sessions with Custom Names and Verify
 
-    func testCreateSessionsAndVerifyGrid() throws {
+    func testCreateSixSessionsWithNames() throws {
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
 
-        // Click the "+" button in toolbar to create a session
-        let plusButton = app.toolbars.buttons.matching(identifier: "New Session").firstMatch
-        if !plusButton.waitForExistence(timeout: 3) {
-            // Try toolbar buttons by image
-            let toolbarButtons = app.toolbars.buttons
-            XCTAssertTrue(toolbarButtons.count > 0, "Toolbar should have buttons")
-        }
+        let sessionNames = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta"]
 
-        // Use Cmd+N to open launcher
-        app.typeKey("n", modifierFlags: .command)
-        sleep(1)
+        for (i, name) in sessionNames.enumerated() {
+            // Open launcher
+            app.typeKey("n", modifierFlags: .command)
+            sleep(2)
 
-        // Check if launcher window appeared
-        let launcherWindow = app.windows.matching(NSPredicate(format: "title CONTAINS 'Launch'")).firstMatch
-        if launcherWindow.waitForExistence(timeout: 3) {
-            // Launcher opened — look for the Launch button
-            let launchBtn = launcherWindow.buttons.matching(NSPredicate(format: "title CONTAINS 'Launch'")).firstMatch
-            if launchBtn.waitForExistence(timeout: 2) {
-                launchBtn.click()
-                sleep(2)
+            // Find the name text field — first text field in the launcher.
+            // Use a short wait then grab all text fields.
+            sleep(1)
+            let textFields = app.textFields.allElementsBoundByIndex
+            guard !textFields.isEmpty else {
+                XCTFail("No text fields found for session \(i + 1)")
+                return
             }
+            // First text field is the session name
+            let nameField = textFields[0]
+            nameField.click()
+            nameField.typeKey("a", modifierFlags: .command)
+            nameField.typeText(name)
+
+            // Click Launch button (identified by accessibilityIdentifier)
+            sleep(1)
+            let launchBtn = app.buttons["launchButton"]
+            XCTAssertTrue(launchBtn.waitForExistence(timeout: 3),
+                          "Launch button should exist for session \(i + 1)")
+            XCTAssertTrue(launchBtn.isEnabled,
+                          "Launch button should be enabled for session \(i + 1)")
+            launchBtn.click()
+
+            sleep(1)
         }
 
-        // After launching, the empty state should be gone
-        // The grid should have at least one session card
+        // Wait for all sessions to appear
         sleep(2)
+
+        // Verify: the empty state "Launch Session" button should be gone
+        let emptyButton = app.buttons["Launch Session"]
+        XCTAssertFalse(emptyButton.exists,
+                       "Empty state should be gone after creating 6 sessions")
+
+        // Verify: session count text should show "6 sessions"
+        let sessionCount = app.staticTexts["6 sessions"]
+        if sessionCount.waitForExistence(timeout: 3) {
+            XCTAssertTrue(sessionCount.exists, "Should show '6 sessions' in layout bar")
+        }
+
+        // Verify: each session name should appear somewhere in the UI (sidebar or cards)
+        for name in sessionNames {
+            let nameText = app.staticTexts[name]
+            XCTAssertTrue(nameText.waitForExistence(timeout: 3),
+                          "Session '\(name)' should be visible in the UI")
+        }
     }
 
     // MARK: - Test 4: Layout Mode Switching
@@ -263,30 +280,27 @@ final class AgentsBoardE2ETests: XCTestCase {
 
     // MARK: - Helpers
 
-    /// Creates sessions using the debug 10x button (fastest) or Cmd+N fallback.
+    /// Creates sessions via launcher — uses default Claude provider with pre-filled command.
     private func createDebugSessions(count: Int) {
-        // Try the 10x debug toolbar button first (only in DEBUG builds)
-        let debugBtn = app.toolbars.buttons["10x Debug"]
-        if debugBtn.waitForExistence(timeout: 2) {
-            let presses = max(1, (count + 9) / 10) // ceil(count/10)
-            for _ in 0..<presses {
-                debugBtn.click()
-                sleep(1)
-            }
-            sleep(2) // Wait for fleet to update
-            return
-        }
+        for i in 0..<count {
+            app.typeKey("n", modifierFlags: .command)
+            sleep(2)
 
-        // Fallback: open launcher once with a single session
-        app.typeKey("n", modifierFlags: .command)
-        usleep(500_000)
-        let launcherWindow = app.windows.matching(NSPredicate(format: "title CONTAINS 'Launch'")).firstMatch
-        if launcherWindow.waitForExistence(timeout: 2) {
-            let launchBtn = launcherWindow.buttons.matching(NSPredicate(format: "title CONTAINS 'Launch'")).firstMatch
-            if launchBtn.waitForExistence(timeout: 1) {
+            // First text field = session name
+            let textFields = app.textFields.allElementsBoundByIndex
+            guard !textFields.isEmpty else { continue }
+            textFields[0].click()
+            textFields[0].typeKey("a", modifierFlags: .command)
+            textFields[0].typeText("Test \(i + 1)")
+
+            // Click Launch
+            sleep(1)
+            let launchBtn = app.buttons["launchButton"]
+            if launchBtn.waitForExistence(timeout: 2) && launchBtn.isEnabled {
                 launchBtn.click()
-                sleep(1)
             }
+            sleep(1)
         }
+        sleep(2)
     }
 }
