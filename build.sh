@@ -4,7 +4,7 @@ set -euo pipefail
 # AgentsBoard — Build & Package into .app bundle
 APP_NAME="AgentsBoard"
 BUNDLE_ID="com.agentsboard.app"
-VERSION="0.1.0"
+VERSION="$(cat VERSION 2>/dev/null || echo '0.0.0')"
 BUILD_DIR="build"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 

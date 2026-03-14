@@ -4,7 +4,8 @@
 
 set -euo pipefail
 
-VERSION="${1:-0.1.0}"
+DEFAULT_VERSION="$(cat VERSION 2>/dev/null || echo '0.0.0')"
+VERSION="${1:-$DEFAULT_VERSION}"
 BUNDLE_ID="com.agentsboard.app"
 TEAM_ID="${TEAM_ID:-}"
 SIGNING_IDENTITY="${SIGNING_IDENTITY:-Developer ID Application}"

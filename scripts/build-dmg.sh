@@ -4,7 +4,8 @@
 
 set -euo pipefail
 
-VERSION="${1:-0.1.0}"
+DEFAULT_VERSION="$(cat VERSION 2>/dev/null || echo '0.0.0')"
+VERSION="${1:-$DEFAULT_VERSION}"
 APP_PATH="build/AgentsBoard.app"
 DMG_NAME="AgentsBoard-${VERSION}.dmg"
 DMG_PATH="build/${DMG_NAME}"
