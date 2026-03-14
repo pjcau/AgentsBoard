@@ -39,7 +39,7 @@ struct SidebarView: View {
 
             // Session list
             ScrollView {
-                LazyVStack(spacing: 2) {
+                LazyVStack(spacing: 6) {
                     switch viewModel.viewMode {
                     case .all:
                         ForEach(viewModel.filteredSessions, id: \.sessionId) { session in
@@ -67,84 +67,107 @@ struct SessionListItem: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
-            // State indicator
-            Circle()
-                .fill(stateColor(session.state))
-                .frame(width: 8, height: 8)
+        VStack(alignment: .leading, spacing: 6) {
+            // Row 1: State dot + Name + State badge
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(stateColor(session.state))
+                    .frame(width: 8, height: 8)
 
-            // Provider icon
-            Image(systemName: providerIcon(session.provider))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
-
-            // Session info
-            VStack(alignment: .leading, spacing: 2) {
                 Text(session.name)
                     .font(.callout)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
-                HStack(spacing: 6) {
-                    // Provider name
-                    if let provider = session.provider {
-                        Text(provider.rawValue.capitalized)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+                Spacer()
 
-                    // Branch
-                    if let branch = session.gitBranch {
-                        HStack(spacing: 2) {
-                            Image(systemName: "arrow.triangle.branch")
-                                .font(.system(size: 8))
-                            Text(branch)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
+                Text(session.state.rawValue)
+                    .font(.system(size: 9, weight: .medium))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(stateColor(session.state).opacity(0.15))
+                    .foregroundStyle(stateColor(session.state))
+                    .clipShape(Capsule())
+            }
+
+            // Row 2: Provider pill
+            if let provider = session.provider {
+                HStack(spacing: 4) {
+                    Image(systemName: providerIcon(provider))
+                        .font(.system(size: 9))
+                    Text(provider.rawValue.capitalized)
                         .font(.caption2)
-                        .foregroundStyle(.cyan)
-                    }
+                        .fontWeight(.medium)
                 }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.accentColor.opacity(0.1))
+                .foregroundStyle(.secondary)
+                .clipShape(Capsule())
+            }
 
-                // Uptime
+            // Row 3: Branch
+            if let branch = session.gitBranch {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.triangle.branch")
+                        .font(.system(size: 9))
+                    Text(branch)
+                        .font(.caption2)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                .foregroundStyle(.cyan)
+            }
+
+            // Row 4: Path
+            if let path = session.projectPath, !path.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "folder")
+                        .font(.system(size: 9))
+                    Text(Self.shortenPath(path))
+                        .font(.caption2)
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                }
+                .foregroundStyle(.tertiary)
+            }
+
+            // Row 5: Uptime
+            HStack(spacing: 4) {
+                Image(systemName: "clock")
+                    .font(.system(size: 9))
                 Text(Self.formatUptime(since: session.startTime))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
             }
-
-            Spacer()
-
-            // State badge
-            VStack(spacing: 4) {
-                if session.state == .needsInput {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.yellow)
-                } else if session.state == .error {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-            }
+            .foregroundStyle(.tertiary)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
-        .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .padding(10)
+        .background(isSelected ? Color.accentColor.opacity(0.12) : Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(isSelected ? Color.accentColor.opacity(0.4) : Color.clear, lineWidth: 1)
+        )
+    }
+
+    private static func shortenPath(_ path: String) -> String {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        if path.hasPrefix(home) {
+            return "~" + path.dropFirst(home.count)
+        }
+        return path
     }
 
     private static func formatUptime(since date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
         let seconds = Int(interval)
-        if seconds < 60 { return "\(seconds)s" }
+        if seconds < 60 { return "\(seconds)s ago" }
         let minutes = seconds / 60
-        if minutes < 60 { return "\(minutes)m" }
+        if minutes < 60 { return "\(minutes)m ago" }
         let hours = minutes / 60
         let remainingMinutes = minutes % 60
-        return "\(hours)h \(remainingMinutes)m"
+        return "\(hours)h \(remainingMinutes)m ago"
     }
 
     private func stateColor(_ state: AgentState) -> Color {
@@ -218,6 +241,7 @@ struct SidebarSessionInfo {
     let state: AgentState
     let startTime: Date
     let gitBranch: String?
+    let projectPath: String?
 }
 
 struct ProjectGroup {
@@ -231,15 +255,26 @@ final class SidebarViewModel {
     var searchText: String = ""
     var viewMode: SidebarViewMode = .all
     var selectedSessionId: String?
+    var sessionSnapshot: [SidebarSessionInfo] = []
 
     private let fleetManager: any FleetManaging
+    private var refreshTimer: Timer?
 
     init(fleetManager: any FleetManaging) {
         self.fleetManager = fleetManager
+        refreshSessions()
+        // Auto-refresh every 2 seconds to pick up new sessions and update uptime
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.refreshSessions()
+        }
     }
 
-    var filteredSessions: [SidebarSessionInfo] {
-        let sessions = fleetManager.sessions.map { session in
+    deinit {
+        refreshTimer?.invalidate()
+    }
+
+    func refreshSessions() {
+        sessionSnapshot = fleetManager.sessions.map { session in
             SidebarSessionInfo(
                 sessionId: session.sessionId,
                 name: session.sessionName,
@@ -247,9 +282,14 @@ final class SidebarViewModel {
                 modelName: session.agentInfo?.model.name,
                 state: session.state,
                 startTime: session.startTime,
-                gitBranch: session.gitBranch
+                gitBranch: session.gitBranch,
+                projectPath: session.projectPath
             )
         }
+    }
+
+    var filteredSessions: [SidebarSessionInfo] {
+        let sessions = sessionSnapshot
 
         if searchText.isEmpty { return sessions }
         let query = searchText.lowercased()

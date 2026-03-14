@@ -43,6 +43,7 @@ public final class FleetBridge {
 public struct RootView: View {
     private let layoutEngine: LayoutEngine
     private let onLaunchEntries: ([LaunchEntry]) -> Void
+    private let onRemix: ((UIRemixConfig, any AgentSessionRepresentable) -> Void)?
     @Bindable private var nav: NavigationState
     @Bindable private var fleet: FleetBridge
 
@@ -55,6 +56,7 @@ public struct RootView: View {
 
     // NSPanel-based launcher (bypasses SwiftUI sheet focus issues)
     @State private var launcherPresenter = LauncherPresenter()
+    @State private var remixPresenter = RemixSheetPresenter()
 
     public init(
         fleetManager: any FleetManaging,
@@ -62,11 +64,18 @@ public struct RootView: View {
         activityLogger: ActivityLogger,
         layoutEngine: LayoutEngine,
         navigationState: NavigationState,
-        onLaunchEntries: @escaping ([LaunchEntry]) -> Void
+        taskRouter: TaskRouter? = nil,
+        onLaunchEntries: @escaping ([LaunchEntry]) -> Void,
+        onRemix: ((UIRemixConfig, any AgentSessionRepresentable) -> Void)? = nil
     ) {
         self.layoutEngine = layoutEngine
         self.nav = navigationState
         self.onLaunchEntries = onLaunchEntries
+        self.onRemix = onRemix
+
+        var presenter = LauncherPresenter()
+        presenter.taskRouter = taskRouter
+        self._launcherPresenter = State(initialValue: presenter)
 
         let bridge = FleetBridge(fleetManager: fleetManager)
         self._fleet = Bindable(bridge)
@@ -185,6 +194,16 @@ public struct RootView: View {
             return existing
         }
         let vm = SessionCardViewModel(session: session)
+        vm.onRemix = { [weak vm] in
+            guard let vm else { return }
+            remixPresenter.present(
+                sessionId: vm.sessionId,
+                sessionName: vm.name,
+                projectPath: vm.workDir ?? ""
+            ) { config in
+                onRemix?(config, session)
+            }
+        }
         DispatchQueue.main.async {
             cardViewModels[session.sessionId] = vm
         }

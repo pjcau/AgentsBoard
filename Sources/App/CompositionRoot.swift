@@ -21,6 +21,11 @@ final class CompositionRoot {
     private(set) var hookEventParser: any HookEventParsing
     private(set) var recorder: any SessionRecordable
 
+    // MARK: - Orchestration
+
+    private(set) var taskRouter: TaskRouter
+    private(set) var sessionRemixer: SessionRemixer
+
     // MARK: - UI Services
 
     private(set) var commandRegistry: CommandRegistry
@@ -59,6 +64,10 @@ final class CompositionRoot {
         self.hookEventParser = HookEventParserStub()
         self.recorder = RecorderStub()
 
+        // Phase 3b: Orchestration
+        self.taskRouter = TaskRouter()
+        self.sessionRemixer = SessionRemixer()
+
         // Phase 4: UI services
         let commandRegistry = CommandRegistry()
         self.commandRegistry = commandRegistry
@@ -90,6 +99,46 @@ final class CompositionRoot {
             eventType: .stateChange,
             details: "Session launched: \(name) — \(command)"
         ))
+    }
+
+    // MARK: - Session Remix
+
+    func remixSession(config: UIRemixConfig, sourceSession: any AgentSessionRepresentable) {
+        let coreConfig = SessionRemixer.RemixConfig(
+            sourceSession: sourceSession,
+            targetProvider: config.targetProvider,
+            branchName: config.branchName,
+            contextDepth: config.contextDepth,
+            projectPath: config.projectPath
+        )
+
+        Task {
+            do {
+                let result = try await sessionRemixer.remix(config: coreConfig)
+                await MainActor.run {
+                    // Launch a new session in the worktree
+                    launchSession(
+                        command: result.targetProvider.defaultCommand,
+                        name: "Remix: \(result.branchName)",
+                        workdir: result.worktreePath
+                    )
+
+                    activityLogger.log(ActivityEvent(
+                        sessionId: sourceSession.sessionId,
+                        eventType: .stateChange,
+                        details: "Remixed to worktree: \(result.branchName)"
+                    ))
+                }
+            } catch {
+                await MainActor.run {
+                    activityLogger.log(ActivityEvent(
+                        sessionId: sourceSession.sessionId,
+                        eventType: .error,
+                        details: "Remix failed: \(error.localizedDescription)"
+                    ))
+                }
+            }
+        }
     }
 
     // MARK: - Default Commands

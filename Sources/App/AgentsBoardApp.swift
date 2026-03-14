@@ -36,6 +36,7 @@ struct AgentsBoardApp: App {
                 activityLogger: compositionRoot.activityLogger,
                 layoutEngine: compositionRoot.layoutEngine,
                 navigationState: compositionRoot.navigationState,
+                taskRouter: compositionRoot.taskRouter,
                 onLaunchEntries: { entries in
                     for entry in entries {
                         compositionRoot.launchSession(
@@ -44,6 +45,9 @@ struct AgentsBoardApp: App {
                             workdir: entry.workDir.isEmpty ? nil : entry.workDir
                         )
                     }
+                },
+                onRemix: { config, session in
+                    compositionRoot.remixSession(config: config, sourceSession: session)
                 }
             )
             .frame(minWidth: 800, minHeight: 600)
