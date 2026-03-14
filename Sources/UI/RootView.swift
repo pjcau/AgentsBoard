@@ -97,6 +97,7 @@ public struct RootView: View {
                 nav.showingLauncher = true
             })
             .frame(minWidth: 180, idealWidth: 220, maxWidth: 320)
+            .onAppear { wireSidebarEdit() }
         } detail: {
             detailContent
         }
@@ -237,22 +238,24 @@ public struct RootView: View {
             }
         }
 
+        vm.onEdit = { [weak vm] (data: SessionEditData) in
+            guard let vm else { return }
+            if !data.name.isEmpty { vm.name = data.name }
+            vm.provider = data.provider
+            if !data.command.isEmpty { vm.launchCommand = data.command }
+            if !data.workDir.isEmpty { vm.workDir = data.workDir }
+            // Update the underlying session if editable
+            if let editable = session as? SessionEditable {
+                if !data.name.isEmpty { editable.sessionName = data.name }
+                if !data.workDir.isEmpty { editable.projectPath = data.workDir }
+                if !data.gitBranch.isEmpty { editable.gitBranch = data.gitBranch }
+                if !data.command.isEmpty { editable.launchCommand = data.command }
+            }
+        }
+
         vm.onRename = { [weak vm] _ in
             guard let vm else { return }
-            let alert = NSAlert()
-            alert.messageText = "Rename Session"
-            alert.informativeText = "Enter a new name for this session."
-            alert.addButton(withTitle: "Rename")
-            alert.addButton(withTitle: "Cancel")
-            let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
-            textField.stringValue = vm.name
-            alert.accessoryView = textField
-            if alert.runModal() == .alertFirstButtonReturn {
-                let newName = textField.stringValue.trimmingCharacters(in: .whitespaces)
-                if !newName.isEmpty {
-                    vm.name = newName
-                }
-            }
+            _ = vm.name
         }
 
         vm.onToggleRecording = { [weak vm] in
@@ -270,6 +273,32 @@ public struct RootView: View {
             cardViewModels[session.sessionId] = vm
         }
         return vm
+    }
+
+    // MARK: - Sidebar Edit Wiring
+
+    private func wireSidebarEdit() {
+        let fm = fleetManager
+        let bridge = fleet
+        let sidebar = sidebarVM
+        let cards = cardViewModels
+        sidebar.onEditSession = { (sessionId: String, data: SessionEditData) in
+            guard let session = fm.session(byId: sessionId) else { return }
+            if let editable = session as? SessionEditable {
+                if !data.name.isEmpty { editable.sessionName = data.name }
+                if !data.workDir.isEmpty { editable.projectPath = data.workDir }
+                if !data.gitBranch.isEmpty { editable.gitBranch = data.gitBranch }
+                if !data.command.isEmpty { editable.launchCommand = data.command }
+            }
+            if let vm = cards[sessionId] {
+                if !data.name.isEmpty { vm.name = data.name }
+                vm.provider = data.provider
+                if !data.command.isEmpty { vm.launchCommand = data.command }
+                if !data.workDir.isEmpty { vm.workDir = data.workDir }
+            }
+            bridge.refresh()
+            sidebar.refreshSessions()
+        }
     }
 
     // MARK: - Command Palette Overlay

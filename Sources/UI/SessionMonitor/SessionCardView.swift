@@ -22,6 +22,7 @@ struct SessionCardView: View {
     @State private var selectedTab: SessionTab = .terminal
     @State private var terminalId = UUID()
     @State private var fileVM = FileExplorerViewModel()
+    @State private var showingEdit = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,7 +31,8 @@ struct SessionCardView: View {
                 name: viewModel.name,
                 provider: viewModel.provider,
                 modelName: viewModel.modelName,
-                state: viewModel.state
+                state: viewModel.state,
+                onEdit: { showingEdit = true }
             )
 
             // Tab content
@@ -74,11 +76,25 @@ struct SessionCardView: View {
                 sessionName: viewModel.name,
                 projectPath: viewModel.workDir,
                 onRemix: viewModel.onRemix,
-                onRename: viewModel.onRename,
+                onEdit: { showingEdit = true },
+                onRename: { _ in showingEdit = true },
                 onKill: viewModel.onKill,
                 onRestart: viewModel.onRestart,
                 onToggleRecording: viewModel.onToggleRecording,
                 isRecording: viewModel.isRecording
+            )
+        }
+        .sheet(isPresented: $showingEdit) {
+            SessionEditView(
+                isPresented: $showingEdit,
+                name: viewModel.name,
+                command: viewModel.launchCommand ?? "",
+                workDir: viewModel.workDir ?? "",
+                gitBranch: "",
+                provider: viewModel.provider ?? .claude,
+                onSave: { data in
+                    viewModel.onEdit?(data)
+                }
             )
         }
         .onAppear {
@@ -254,6 +270,7 @@ private struct DiffWindowContentView: View {
 
     @State private var diffVM = DiffReviewViewModel()
     @State private var loading = true
+    @State private var statusMessage: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -270,7 +287,7 @@ private struct DiffWindowContentView: View {
                     Image(systemName: "checkmark.circle")
                         .font(.system(size: 36))
                         .foregroundStyle(.green)
-                    Text("No changes detected")
+                    Text(statusMessage ?? "No changes detected")
                         .font(.title3)
                         .foregroundStyle(.secondary)
                     Text(workDir)
@@ -282,7 +299,68 @@ private struct DiffWindowContentView: View {
                 DiffReviewView(viewModel: diffVM)
             }
         }
-        .onAppear { loadDiff() }
+        .onAppear {
+            wireCallbacks()
+            loadDiff()
+        }
+    }
+
+    private func wireCallbacks() {
+        diffVM.onApprove = { [self] in
+            approveChanges()
+        }
+        diffVM.onReject = { [self] in
+            rejectChanges()
+        }
+    }
+
+    private func approveChanges() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            process.arguments = ["add", "-A"]
+            process.currentDirectoryURL = URL(fileURLWithPath: workDir)
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+
+            do {
+                try process.run()
+                process.waitUntilExit()
+                DispatchQueue.main.async {
+                    statusMessage = "Changes staged (git add -A)"
+                    diffVM.hunks = []
+                }
+            } catch {}
+        }
+    }
+
+    private func rejectChanges() {
+        let alert = NSAlert()
+        alert.messageText = "Reject Changes?"
+        alert.informativeText = "This will discard all unstaged changes in \(workDir). This cannot be undone."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Discard Changes")
+        alert.addButton(withTitle: "Cancel")
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            process.arguments = ["checkout", "--", "."]
+            process.currentDirectoryURL = URL(fileURLWithPath: workDir)
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+
+            do {
+                try process.run()
+                process.waitUntilExit()
+                DispatchQueue.main.async {
+                    statusMessage = "Changes discarded (git checkout)"
+                    diffVM.hunks = []
+                }
+            } catch {}
+        }
     }
 
     private func loadDiff() {
@@ -323,6 +401,7 @@ struct SessionCardHeader: View {
     let provider: AgentProvider?
     let modelName: String?
     let state: AgentState
+    var onEdit: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -348,6 +427,14 @@ struct SessionCardHeader: View {
                     .background(.ultraThinMaterial)
                     .clipShape(Capsule())
             }
+
+            Button(action: { onEdit?() }) {
+                Image(systemName: "pencil")
+                    .font(.caption)
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help("Edit session info")
 
             Text(state.rawValue)
                 .font(.caption2)
@@ -413,6 +500,7 @@ struct SessionContextMenu: View {
     let sessionName: String
     let projectPath: String?
     var onRemix: (() -> Void)?
+    var onEdit: (() -> Void)?
     var onRename: ((String) -> Void)?
     var onKill: (() -> Void)?
     var onRestart: (() -> Void)?
@@ -420,6 +508,10 @@ struct SessionContextMenu: View {
     var isRecording: Bool = false
 
     var body: some View {
+        Button("Edit Session...") {
+            onEdit?()
+        }
+        Divider()
         Button("Rename...") {
             onRename?(sessionName)
         }
@@ -463,6 +555,7 @@ final class SessionCardViewModel {
     var onKill: (() -> Void)?
     var onRestart: (() -> Void)?
     var onRename: ((String) -> Void)?
+    var onEdit: ((SessionEditData) -> Void)?
     var onToggleRecording: (() -> Void)?
     var isRecording: Bool = false
 

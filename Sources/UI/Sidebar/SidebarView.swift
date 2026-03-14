@@ -43,10 +43,12 @@ struct SidebarView: View {
                     switch viewModel.viewMode {
                     case .all:
                         ForEach(viewModel.filteredSessions, id: \.sessionId) { session in
-                            SessionListItem(session: session, isSelected: viewModel.selectedSessionId == session.sessionId)
-                                .onTapGesture {
-                                    viewModel.selectedSessionId = session.sessionId
-                                }
+                            SidebarSessionRow(
+                                session: session,
+                                isSelected: viewModel.selectedSessionId == session.sessionId,
+                                onSelect: { viewModel.selectedSessionId = session.sessionId },
+                                onEdit: { data in viewModel.onEditSession?(session.sessionId, data) }
+                            )
                         }
                     case .byProject:
                         ForEach(viewModel.projectGroups, id: \.name) { group in
@@ -57,6 +59,43 @@ struct SidebarView: View {
                 .padding(.horizontal, 4)
             }
         }
+    }
+}
+
+// MARK: - Sidebar Session Row (wraps SessionListItem with context menu + edit sheet)
+
+struct SidebarSessionRow: View {
+    let session: SidebarSessionInfo
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onEdit: (SessionEditData) -> Void
+
+    @State private var showingEdit = false
+
+    var body: some View {
+        SessionListItem(session: session, isSelected: isSelected)
+            .onTapGesture { onSelect() }
+            .contextMenu {
+                Button("Edit Session...") {
+                    showingEdit = true
+                }
+                Divider()
+                Button("Copy Session ID") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(session.sessionId, forType: .string)
+                }
+            }
+            .sheet(isPresented: $showingEdit) {
+                SessionEditView(
+                    isPresented: $showingEdit,
+                    name: session.name,
+                    command: "",
+                    workDir: session.projectPath ?? "",
+                    gitBranch: session.gitBranch ?? "",
+                    provider: session.provider ?? .claude,
+                    onSave: onEdit
+                )
+            }
     }
 }
 
@@ -201,11 +240,13 @@ struct ProjectTreeItem: View {
     var body: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
             ForEach(group.sessions, id: \.sessionId) { session in
-                SessionListItem(session: session, isSelected: viewModel.selectedSessionId == session.sessionId)
-                    .onTapGesture {
-                        viewModel.selectedSessionId = session.sessionId
-                    }
-                    .padding(.leading, 8)
+                SidebarSessionRow(
+                    session: session,
+                    isSelected: viewModel.selectedSessionId == session.sessionId,
+                    onSelect: { viewModel.selectedSessionId = session.sessionId },
+                    onEdit: { data in viewModel.onEditSession?(session.sessionId, data) }
+                )
+                .padding(.leading, 8)
             }
         } label: {
             HStack {
@@ -256,6 +297,9 @@ final class SidebarViewModel {
     var viewMode: SidebarViewMode = .all
     var selectedSessionId: String?
     var sessionSnapshot: [SidebarSessionInfo] = []
+
+    /// Called when the user edits a session from the sidebar. (sessionId, editData)
+    var onEditSession: ((String, SessionEditData) -> Void)?
 
     private let fleetManager: any FleetManaging
     private var refreshTimer: Timer?

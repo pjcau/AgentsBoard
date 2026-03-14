@@ -30,6 +30,14 @@ public protocol AgentSessionRepresentable: AnyObject {
     func sendInput(_ text: String)
 }
 
+/// Sessions that support editing their metadata.
+public protocol SessionEditable: AgentSessionRepresentable {
+    var sessionName: String { get set }
+    var projectPath: String? { get set }
+    var gitBranch: String? { get set }
+    var launchCommand: String? { get set }
+}
+
 extension AgentSessionRepresentable {
     public var outputText: String { "" }
     public var launchCommand: String? { nil }

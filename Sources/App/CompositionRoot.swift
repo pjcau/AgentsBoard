@@ -210,7 +210,7 @@ final class CompositionRoot {
 /// Session placeholder for fleet registration.
 /// The actual terminal process is managed by SwiftTerm's LocalProcessTerminalView in the UI.
 @Observable
-final class AgentSessionAdapter: AgentSessionRepresentable {
+final class AgentSessionAdapter: SessionEditable {
     let sessionId: String
     var agentInfo: AgentInfo?
     var state: AgentState = .working
@@ -220,7 +220,7 @@ final class AgentSessionAdapter: AgentSessionRepresentable {
     var lastEventTime: Date?
     var outputText: String = ""
     var launchCommand: String?
-    let sessionName: String
+    var sessionName: String
     var gitBranch: String?
 
     init(terminal: TerminalSession, name: String, projectPath: String?, command: String?) {
