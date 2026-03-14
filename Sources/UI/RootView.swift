@@ -41,6 +41,38 @@ public final class FleetBridge {
     }
 }
 
+// MARK: - Appearance Mode
+
+public enum AppearanceMode: String, CaseIterable {
+    case auto = "auto"
+    case light = "light"
+    case dark = "dark"
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .auto: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .auto: return "circle.lefthalf.filled"
+        case .light: return "sun.max.fill"
+        case .dark: return "moon.fill"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .auto: return "Auto"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+}
+
 public struct RootView: View {
     private let layoutEngine: LayoutEngine
     private let fleetManager: any FleetManaging
@@ -49,6 +81,7 @@ public struct RootView: View {
     private let onRemix: ((UIRemixConfig, any AgentSessionRepresentable) -> Void)?
     @Bindable private var nav: NavigationState
     @Bindable private var fleet: FleetBridge
+    @AppStorage("appearanceMode") private var appearanceMode: String = "auto"
 
     // All ViewModels as @State so they persist across renders
     @State private var sidebarVM: SidebarViewModel
@@ -122,7 +155,24 @@ public struct RootView: View {
                 .keyboardShortcut("t", modifiers: .command)
                 .help("Toggle terminal panel (Cmd+T)")
             }
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    ForEach(AppearanceMode.allCases, id: \.rawValue) { mode in
+                        Button {
+                            appearanceMode = mode.rawValue
+                        } label: {
+                            Label(mode.label, systemImage: mode.icon)
+                        }
+                    }
+                } label: {
+                    let current = AppearanceMode(rawValue: appearanceMode) ?? .auto
+                    Image(systemName: current.icon)
+                        .font(.system(size: 14))
+                        .help("Appearance: \(current.label)")
+                }
+            }
         }
+        .preferredColorScheme((AppearanceMode(rawValue: appearanceMode) ?? .auto).colorScheme)
         // Launcher uses NSPanel — no .sheet needed
         .onChange(of: nav.showingLauncher) { _, show in
             if show {
