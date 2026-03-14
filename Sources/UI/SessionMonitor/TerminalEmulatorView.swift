@@ -32,6 +32,9 @@ struct TerminalEmulatorView: NSViewRepresentable {
         let termView = LocalProcessTerminalView(frame: .zero)
         termView.processDelegate = context.coordinator
 
+        // Let AppKit auto-resize the terminal to fill its SwiftUI container
+        termView.autoresizingMask = [.width, .height]
+
         // Configure terminal appearance
         termView.nativeBackgroundColor = .black
         termView.nativeForegroundColor = .green
@@ -53,23 +56,32 @@ struct TerminalEmulatorView: NSViewRepresentable {
             env.append("LANG=en_US.UTF-8")
         }
 
-        // Use login shell (-l) with -c to run the command, so ~/.zshrc is sourced
-        termView.startProcess(
-            executable: shell,
-            args: ["-l", "-c", command],
-            environment: env,
-            currentDirectory: workingDirectory
-        )
+        // Store command/env in coordinator so we can defer startProcess until layout
+        context.coordinator.pendingStart = (shell, command, env, workingDirectory)
+
+        // Defer process start to next run loop — by then SwiftUI will have
+        // laid out the view with a real frame, so SwiftTerm computes correct
+        // cols/rows for the PTY. Starting with frame .zero causes 0-column PTY.
+        DispatchQueue.main.async {
+            guard let pending = context.coordinator.pendingStart else { return }
+            context.coordinator.pendingStart = nil
+            termView.startProcess(
+                executable: pending.shell,
+                args: ["-l", "-c", pending.command],
+                environment: pending.env,
+                currentDirectory: pending.workDir
+            )
+        }
 
         return termView
     }
 
     func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {
         // Re-apply font when fontSize AppStorage value changes
-        guard let monoFont = NSFont.userFixedPitchFont(ofSize: fontSize),
-              nsView.font.pointSize != monoFont.pointSize
-        else { return }
-        nsView.font = monoFont
+        if let monoFont = NSFont.userFixedPitchFont(ofSize: fontSize),
+           nsView.font.pointSize != monoFont.pointSize {
+            nsView.font = monoFont
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -78,6 +90,7 @@ struct TerminalEmulatorView: NSViewRepresentable {
 
     class Coordinator: NSObject, LocalProcessTerminalViewDelegate {
         let onProcessExit: ((Int32?) -> Void)?
+        var pendingStart: (shell: String, command: String, env: [String], workDir: String?)?
 
         init(onProcessExit: ((Int32?) -> Void)?) {
             self.onProcessExit = onProcessExit
