@@ -178,23 +178,38 @@ struct SessionCardView: View {
                 .frame(minHeight: 120)
             }
         } else {
-            ScrollView(.vertical) {
+            ZStack {
+                Color.black
+
                 if viewModel.cleanOutput.isEmpty {
-                    Text(viewModel.state == .working ? L10n.Terminal.waiting : L10n.Terminal.noOutput)
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundColor(.gray)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(8)
+                    if viewModel.state == .working {
+                        // Launching feedback — spinner + message
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .controlSize(.regular)
+                                .tint(.green)
+                            Text(L10n.Terminal.waiting)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(.green.opacity(0.8))
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        Text(L10n.Terminal.noOutput)
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 } else {
-                    Text(viewModel.cleanOutput)
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundColor(.green)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(8)
-                        .textSelection(.enabled)
+                    ScrollView(.vertical) {
+                        Text(viewModel.cleanOutput)
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(.green)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .padding(8)
+                            .textSelection(.enabled)
+                    }
                 }
             }
-            .background(Color.black)
             .frame(minHeight: 80)
         }
     }
