@@ -111,6 +111,7 @@ Get the latest `.dmg` from [Releases](../../releases).
 
 ### Homebrew
 ```bash
+brew tap pjcau/agentsboard
 brew install --cask agentsboard
 ```
 
@@ -118,7 +119,7 @@ brew install --cask agentsboard
 ```bash
 git clone https://github.com/pjcau/AgentsBoard.git
 cd AgentsBoard
-swift build
+./build.sh
 ```
 
 ## Project Configuration

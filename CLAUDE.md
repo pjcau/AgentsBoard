@@ -129,6 +129,7 @@ Sources/
 │   ├── PlanMode/         # Plan mode interaction
 │   ├── Recording/        # Recording playback UI
 │   ├── Themes/           # Theme selection UI
+│   ├── Settings/         # App preferences (appearance, terminal font, general)
 │   ├── VimMode/          # Vim-style command mode
 │   ├── Simulator/        # iOS Simulator integration
 │   └── DiagramRenderer/  # Generic diagram rendering
