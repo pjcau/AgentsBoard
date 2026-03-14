@@ -69,7 +69,12 @@ struct SessionCardView: View {
                 .strokeBorder(viewModel.borderColor, lineWidth: 2)
         )
         .contextMenu {
-            SessionContextMenu(sessionId: viewModel.sessionId)
+            SessionContextMenu(
+                sessionId: viewModel.sessionId,
+                sessionName: viewModel.name,
+                projectPath: viewModel.workDir,
+                onRemix: viewModel.onRemix
+            )
         }
         .onAppear {
             if let dir = viewModel.workDir, !dir.isEmpty {
@@ -400,13 +405,18 @@ struct SessionCardFooter: View {
 
 struct SessionContextMenu: View {
     let sessionId: String
+    let sessionName: String
+    let projectPath: String?
+    var onRemix: (() -> Void)?
 
     var body: some View {
         Button("Rename") { /* Step 5.2 */ }
         Button("Kill Session") { /* Step 5.2 */ }
         Button("Restart") { /* Step 5.2 */ }
         Divider()
-        Button("Remix to Worktree") { /* Step 14.2 */ }
+        if projectPath != nil, !(projectPath?.isEmpty ?? true) {
+            Button("Remix to Worktree") { onRemix?() }
+        }
         Button("Start Recording") { /* Step 15.1 */ }
         Divider()
         Button("Copy Session ID") {
@@ -431,6 +441,7 @@ final class SessionCardViewModel {
     var lastOutput: String = ""
     var launchCommand: String?
     var workDir: String?
+    var onRemix: (() -> Void)?
 
     /// Output with ANSI escape codes stripped for display
     var cleanOutput: String {
