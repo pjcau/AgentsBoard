@@ -68,41 +68,83 @@ struct SessionListItem: View {
 
     var body: some View {
         HStack(spacing: 8) {
+            // State indicator
             Circle()
                 .fill(stateColor(session.state))
                 .frame(width: 8, height: 8)
 
+            // Provider icon
             Image(systemName: providerIcon(session.provider))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .frame(width: 16)
 
-            VStack(alignment: .leading, spacing: 1) {
+            // Session info
+            VStack(alignment: .leading, spacing: 2) {
                 Text(session.name)
                     .font(.callout)
+                    .fontWeight(.medium)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                if let model = session.modelName {
-                    Text(model)
+
+                HStack(spacing: 6) {
+                    // Provider name
+                    if let provider = session.provider {
+                        Text(provider.rawValue.capitalized)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    // Branch
+                    if let branch = session.gitBranch {
+                        HStack(spacing: 2) {
+                            Image(systemName: "arrow.triangle.branch")
+                                .font(.system(size: 8))
+                            Text(branch)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                        .foregroundStyle(.cyan)
+                    }
                 }
+
+                // Uptime
+                Text(Self.formatUptime(since: session.startTime))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
 
             Spacer()
 
-            if session.state == .needsInput {
-                Image(systemName: "exclamationmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.yellow)
+            // State badge
+            VStack(spacing: 4) {
+                if session.state == .needsInput {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.yellow)
+                } else if session.state == .error {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
             }
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
         .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    private static func formatUptime(since date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        let seconds = Int(interval)
+        if seconds < 60 { return "\(seconds)s" }
+        let minutes = seconds / 60
+        if minutes < 60 { return "\(minutes)m" }
+        let hours = minutes / 60
+        let remainingMinutes = minutes % 60
+        return "\(hours)h \(remainingMinutes)m"
     }
 
     private func stateColor(_ state: AgentState) -> Color {
@@ -174,6 +216,8 @@ struct SidebarSessionInfo {
     let provider: AgentProvider?
     let modelName: String?
     let state: AgentState
+    let startTime: Date
+    let gitBranch: String?
 }
 
 struct ProjectGroup {
@@ -198,10 +242,12 @@ final class SidebarViewModel {
         let sessions = fleetManager.sessions.map { session in
             SidebarSessionInfo(
                 sessionId: session.sessionId,
-                name: session.agentInfo?.provider.rawValue.capitalized ?? "Session",
+                name: session.sessionName,
                 provider: session.agentInfo?.provider,
                 modelName: session.agentInfo?.model.name,
-                state: session.state
+                state: session.state,
+                startTime: session.startTime,
+                gitBranch: session.gitBranch
             )
         }
 
@@ -210,7 +256,8 @@ final class SidebarViewModel {
         return sessions.filter {
             $0.name.lowercased().contains(query) ||
             ($0.modelName?.lowercased().contains(query) ?? false) ||
-            ($0.provider?.rawValue.lowercased().contains(query) ?? false)
+            ($0.provider?.rawValue.lowercased().contains(query) ?? false) ||
+            ($0.gitBranch?.lowercased().contains(query) ?? false)
         }
     }
 
