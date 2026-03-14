@@ -19,6 +19,7 @@ private class KeyableWindow: NSWindow {
 public final class LauncherPresenter {
     private var window: NSWindow?
     private var onLaunch: (([LaunchEntry]) -> Void)?
+    public var taskRouter: TaskRouter?
 
     public init() {}
 
@@ -31,12 +32,16 @@ public final class LauncherPresenter {
 
         self.onLaunch = onLaunch
 
-        let view = LauncherContentView(onLaunch: { [weak self] entries in
-            onLaunch(entries)
-            self?.dismiss()
-        }, onCancel: { [weak self] in
-            self?.dismiss()
-        })
+        let view = LauncherContentView(
+            taskRouter: taskRouter,
+            onLaunch: { [weak self] entries in
+                onLaunch(entries)
+                self?.dismiss()
+            },
+            onCancel: { [weak self] in
+                self?.dismiss()
+            }
+        )
 
         let hostingView = NSHostingView(rootView: view)
         hostingView.frame = NSRect(x: 0, y: 0, width: 550, height: 480)
@@ -73,26 +78,62 @@ public final class LauncherPresenter {
 
 // MARK: - Launcher Content (SwiftUI view hosted in NSPanel)
 
+private enum LauncherTab: String, CaseIterable {
+    case manual = "Manual"
+    case smart = "Smart Mode"
+}
+
 private struct LauncherContentView: View {
+    let taskRouter: TaskRouter?
     let onLaunch: ([LaunchEntry]) -> Void
     let onCancel: () -> Void
 
     @State private var entries: [LaunchEntryData] = [LaunchEntryData()]
+    @State private var selectedTab: LauncherTab = .manual
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Launch Sessions")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                Spacer()
-                Button("Cancel", action: onCancel)
+            // Header with tabs
+            VStack(spacing: 8) {
+                HStack {
+                    Text("Launch Sessions")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    Spacer()
+                    Button("Cancel", action: onCancel)
+                }
+
+                if taskRouter != nil {
+                    Picker("", selection: $selectedTab) {
+                        ForEach(LauncherTab.allCases, id: \.self) { tab in
+                            Text(tab.rawValue).tag(tab)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
             }
             .padding(16)
 
             Divider()
 
+            // Tab content
+            switch selectedTab {
+            case .manual:
+                manualContent
+            case .smart:
+                if let router = taskRouter {
+                    SmartLauncherTab(
+                        taskRouter: router,
+                        onLaunch: onLaunch,
+                        onCancel: onCancel
+                    )
+                }
+            }
+        }
+    }
+
+    private var manualContent: some View {
+        VStack(spacing: 0) {
             // Entry list
             ScrollView {
                 VStack(spacing: 16) {
@@ -244,30 +285,6 @@ struct LaunchEntryData: Identifiable {
     var provider: AgentProvider = .claude
     var command: String = "claude"
     var workDir: String = ""
-}
-
-// MARK: - Provider Helpers
-
-extension AgentProvider {
-    var displayName: String {
-        switch self {
-        case .claude: return "Claude"
-        case .codex: return "Codex"
-        case .aider: return "Aider"
-        case .gemini: return "Gemini"
-        case .custom: return "Custom"
-        }
-    }
-
-    var defaultCommand: String {
-        switch self {
-        case .claude: return "claude"
-        case .codex: return "codex"
-        case .aider: return "aider"
-        case .gemini: return "gemini"
-        case .custom: return ""
-        }
-    }
 }
 
 // MARK: - Public LaunchEntry (for cross-module API)

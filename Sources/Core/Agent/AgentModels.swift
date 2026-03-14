@@ -9,6 +9,26 @@ public enum AgentProvider: String, Codable, CaseIterable, Sendable {
     case aider
     case gemini
     case custom
+
+    public var displayName: String {
+        switch self {
+        case .claude: return "Claude"
+        case .codex: return "Codex"
+        case .aider: return "Aider"
+        case .gemini: return "Gemini"
+        case .custom: return "Custom"
+        }
+    }
+
+    public var defaultCommand: String {
+        switch self {
+        case .claude: return "claude"
+        case .codex: return "codex"
+        case .aider: return "aider"
+        case .gemini: return "gemini"
+        case .custom: return ""
+        }
+    }
 }
 
 /// Represents the current operational state of an agent session.
