@@ -97,7 +97,7 @@ struct UnifiedDiffView: View {
     let hunks: [DiffHunk]
 
     var body: some View {
-        ScrollView([.horizontal, .vertical]) {
+        ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
                 ForEach(hunks) { hunk in
                     // Hunk header
@@ -131,14 +131,18 @@ struct UnifiedDiffView: View {
                             // Content
                             Text(line.content)
                                 .font(.system(.callout, design: .monospaced))
+                                .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.vertical, 1)
+                        .frame(maxWidth: .infinity)
                         .background(lineBackground(line.type))
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func linePrefix(_ type: DiffLineType) -> String {

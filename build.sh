@@ -8,6 +8,13 @@ VERSION="0.1.0"
 BUILD_DIR="build"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 
+# Kill running instance if open
+if pgrep -x "$APP_NAME" > /dev/null 2>&1; then
+    echo "▸ Closing running $APP_NAME..."
+    pkill -x "$APP_NAME"
+    sleep 0.5
+fi
+
 echo "▸ Building $APP_NAME..."
 swift build -c debug 2>&1 | tail -3
 
@@ -66,5 +73,5 @@ PLIST
 # Ad-hoc code sign (required for macOS to trust the binary)
 codesign --force --deep --sign - "$APP_BUNDLE" 2>/dev/null
 
-echo "▸ Done! Run with:"
-echo "  open $APP_BUNDLE"
+echo "▸ Done! Launching $APP_NAME..."
+open "$APP_BUNDLE"

@@ -144,8 +144,50 @@ public struct RootView: View {
         if fleet.sessions.isEmpty {
             emptyState
         } else {
-            sessionGrid
+            VStack(spacing: 0) {
+                layoutBar
+                Divider()
+                sessionGrid
+            }
         }
+    }
+
+    private var layoutBar: some View {
+        HStack(spacing: 12) {
+            Text("\(fleet.sessions.count) session\(fleet.sessions.count == 1 ? "" : "s")")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            HStack(spacing: 4) {
+                layoutButton(.single, icon: "square", help: "Single (focus)")
+                layoutButton(.list, icon: "list.bullet", help: "List")
+                layoutButton(.twoColumn, icon: "square.split.2x1", help: "2 columns")
+                layoutButton(.threeColumn, icon: "square.split.3x1", help: "3 columns")
+                layoutButton(.fleet, icon: "square.grid.2x2", help: "Grid")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial)
+    }
+
+    private func layoutButton(_ mode: LayoutMode, icon: String, help: String) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                nav.layoutMode = mode
+            }
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .frame(width: 28, height: 24)
+                .background(nav.layoutMode == mode ? Color.accentColor.opacity(0.2) : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(nav.layoutMode == mode ? .primary : .secondary)
+        .help(help)
     }
 
     private var emptyState: some View {
