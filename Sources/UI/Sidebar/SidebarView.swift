@@ -39,6 +39,7 @@ struct SidebarView: View {
             Picker("View", selection: $viewModel.viewMode) {
                 Text("All").tag(SidebarViewMode.all)
                 Text("Projects").tag(SidebarViewMode.byProject)
+                Image(systemName: "arrow.triangle.branch").tag(SidebarViewMode.worktrees)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 8)
@@ -46,32 +47,70 @@ struct SidebarView: View {
 
             Divider()
 
-            // Session list
-            ScrollView {
-                LazyVStack(spacing: 6) {
-                    switch viewModel.viewMode {
-                    case .all:
-                        ForEach(viewModel.filteredSessions, id: \.sessionId) { session in
-                            SidebarSessionRow(
-                                session: session,
-                                isSelected: viewModel.selectedSessionId == session.sessionId,
-                                onSelect: { viewModel.selectedSessionId = session.sessionId },
-                                onEdit: { data in viewModel.onEditSession?(session.sessionId, data) },
-                                onArchive: { viewModel.onArchiveSession?(session.sessionId) },
-                                onUnarchive: { viewModel.onUnarchiveSession?(session.sessionId) },
-                                onDelete: { viewModel.onDeleteSession?(session.sessionId) },
-                                onMoveUp: { viewModel.moveSessionUp(session.sessionId) },
-                                onMoveDown: { viewModel.moveSessionDown(session.sessionId) }
-                            )
-                        }
-                    case .byProject:
-                        ForEach(viewModel.projectGroups, id: \.name) { group in
-                            ProjectTreeItem(group: group, viewModel: viewModel)
+            // Content based on view mode
+            switch viewModel.viewMode {
+            case .all, .byProject:
+                // Session list
+                ScrollView {
+                    LazyVStack(spacing: 6) {
+                        switch viewModel.viewMode {
+                        case .all:
+                            ForEach(viewModel.filteredSessions, id: \.sessionId) { session in
+                                SidebarSessionRow(
+                                    session: session,
+                                    isSelected: viewModel.selectedSessionId == session.sessionId,
+                                    onSelect: { viewModel.selectedSessionId = session.sessionId },
+                                    onEdit: { data in viewModel.onEditSession?(session.sessionId, data) },
+                                    onArchive: { viewModel.onArchiveSession?(session.sessionId) },
+                                    onUnarchive: { viewModel.onUnarchiveSession?(session.sessionId) },
+                                    onDelete: { viewModel.onDeleteSession?(session.sessionId) },
+                                    onMoveUp: { viewModel.moveSessionUp(session.sessionId) },
+                                    onMoveDown: { viewModel.moveSessionDown(session.sessionId) }
+                                )
+                            }
+                        case .byProject:
+                            ForEach(viewModel.projectGroups, id: \.name) { group in
+                                ProjectTreeItem(group: group, viewModel: viewModel)
+                            }
+                        default:
+                            EmptyView()
                         }
                     }
+                    .padding(.horizontal, 4)
                 }
-                .padding(.horizontal, 4)
+
+            case .worktrees:
+                worktreeContent
             }
+        }
+    }
+
+    // MARK: - Worktree Content
+
+    @ViewBuilder
+    private var worktreeContent: some View {
+        if let projectPath = viewModel.activeProjectPath {
+            WorktreeManagerView(
+                projectPath: projectPath,
+                onOpenSession: { _, _ in
+                    onNewSession?()
+                }
+            )
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: "arrow.triangle.branch")
+                    .font(.system(size: 28))
+                    .foregroundStyle(.tertiary)
+                Text("No project selected")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Text("Launch a session with a working directory to manage worktrees")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
@@ -343,6 +382,7 @@ struct ProjectTreeItem: View {
 enum SidebarViewMode: String {
     case all
     case byProject
+    case worktrees
 }
 
 struct SidebarSessionInfo {
@@ -440,6 +480,16 @@ final class SidebarViewModel {
             ($0.provider?.rawValue.lowercased().contains(query) ?? false) ||
             ($0.gitBranch?.lowercased().contains(query) ?? false)
         }
+    }
+
+    /// Returns the project path of the selected session, or the first session with a path.
+    var activeProjectPath: String? {
+        if let selected = selectedSessionId,
+           let session = sessionSnapshot.first(where: { $0.sessionId == selected }),
+           let path = session.projectPath, !path.isEmpty {
+            return path
+        }
+        return sessionSnapshot.compactMap(\.projectPath).first { !$0.isEmpty }
     }
 
     var projectGroups: [ProjectGroup] {
