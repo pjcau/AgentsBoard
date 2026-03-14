@@ -56,7 +56,7 @@ struct ThreeColumnLayout: LayoutProviding {
 // MARK: - Fleet Grid Layout
 /// Auto-fitting grid that adapts column count to available space.
 struct FleetGridLayout: LayoutProviding {
-    let minCardWidth: CGFloat = 300
+    let minCardWidth: CGFloat = 420
     let minCardHeight: CGFloat = 200
     let spacing: CGFloat = 8
 
@@ -71,13 +71,23 @@ struct FleetGridLayout: LayoutProviding {
 
 private func gridLayout(cardCount: Int, columns: Int, in size: CGSize, spacing: CGFloat) -> [CardFrame] {
     guard cardCount > 0, columns > 0 else { return [] }
-    let rows = Int(ceil(Double(cardCount) / Double(columns)))
-    let cardWidth = (size.width - spacing * CGFloat(columns - 1)) / CGFloat(columns)
+    // If computed card width would be too narrow for a terminal, reduce column count
+    let effectiveColumns: Int = {
+        var cols = columns
+        while cols > 1 {
+            let w = (size.width - spacing * CGFloat(cols - 1)) / CGFloat(cols)
+            if w >= 350 { return cols }
+            cols -= 1
+        }
+        return 1
+    }()
+    let rows = Int(ceil(Double(cardCount) / Double(effectiveColumns)))
+    let cardWidth = (size.width - spacing * CGFloat(effectiveColumns - 1)) / CGFloat(effectiveColumns)
     let cardHeight = (size.height - spacing * CGFloat(rows - 1)) / CGFloat(rows)
 
     return (0..<cardCount).map { i in
-        let col = i % columns
-        let row = i / columns
+        let col = i % effectiveColumns
+        let row = i / effectiveColumns
         let x = CGFloat(col) * (cardWidth + spacing)
         let y = CGFloat(row) * (cardHeight + spacing)
         return CardFrame(id: i, rect: CGRect(x: x, y: y, width: cardWidth, height: cardHeight))
