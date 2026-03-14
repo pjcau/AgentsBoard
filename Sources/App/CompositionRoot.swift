@@ -117,6 +117,10 @@ final class CompositionRoot {
             projectPath: workdir,
             command: effectiveCommand
         )
+        // Placeholder sessions (no command) start as inactive
+        if effectiveCommand == nil {
+            agentSession.state = .inactive
+        }
 
         print("[LaunchSession] Registering session \(agentSession.sessionId) in fleet")
         fleetManager.register(agentSession)
