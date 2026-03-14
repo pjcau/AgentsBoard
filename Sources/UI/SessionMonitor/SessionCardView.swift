@@ -452,7 +452,7 @@ final class SessionCardViewModel {
     init(session: any AgentSessionRepresentable) {
         self.session = session
         self.sessionId = session.sessionId
-        self.name = session.agentInfo?.provider.rawValue.capitalized ?? "Session"
+        self.name = session.sessionName
         self.provider = session.agentInfo?.provider
         self.modelName = session.agentInfo?.model.name
         self.state = session.state
