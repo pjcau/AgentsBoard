@@ -428,7 +428,7 @@ final class SidebarViewModel {
         self.fleetManager = fleetManager
         refreshSessions()
         // Auto-refresh every 2 seconds to pick up new sessions and update uptime
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             self?.refreshSessions()
         }
     }
