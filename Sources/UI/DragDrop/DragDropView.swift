@@ -75,7 +75,7 @@ struct DropZoneView: View {
                         Image(systemName: isValid ? "arrow.down.doc" : "xmark.circle")
                             .font(.title)
                             .foregroundStyle(isValid ? .green : .red)
-                        Text(isValid ? "Drop files here" : "Unsupported file type")
+                        Text(isValid ? L10n.Drop.dropHere : L10n.Drop.unsupported)
                             .font(.callout)
                             .foregroundStyle(isValid ? .green : .red)
                     }
@@ -93,11 +93,11 @@ struct AttachmentPreviewView: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack {
-                Text("\(attachments.count) file(s) attached")
+                Text("\(attachments.count) \(L10n.Drop.filesAttached)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("Send") { onSend() }
+                Button(L10n.send) { onSend() }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
             }

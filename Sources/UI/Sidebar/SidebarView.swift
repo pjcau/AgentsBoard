@@ -13,7 +13,7 @@ struct SidebarView: View {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search sessions...", text: $viewModel.searchText)
+                TextField(L10n.Sidebar.searchPlaceholder, text: $viewModel.searchText)
                     .textFieldStyle(.plain)
                 Spacer()
                 Button {
@@ -24,21 +24,21 @@ struct SidebarView: View {
                         .foregroundStyle(viewModel.showArchived ? Color.accentColor : Color.secondary)
                 }
                 .buttonStyle(.borderless)
-                .help(viewModel.showArchived ? "Hide Archived Sessions" : "Show Archived Sessions")
+                .help(viewModel.showArchived ? L10n.Sidebar.hideArchived : L10n.Sidebar.showArchived)
                 Button(action: { onNewSession?() }) {
                     Image(systemName: "plus")
                         .font(.body)
                 }
                 .buttonStyle(.borderless)
-                .help("New Session (Cmd+N)")
+                .help(L10n.Sidebar.newSessionHint)
             }
             .padding(8)
             .background(.ultraThinMaterial)
 
             // Segmented control
             Picker("View", selection: $viewModel.viewMode) {
-                Text("All").tag(SidebarViewMode.all)
-                Text("Projects").tag(SidebarViewMode.byProject)
+                Text(L10n.Sidebar.all).tag(SidebarViewMode.all)
+                Text(L10n.Sidebar.projects).tag(SidebarViewMode.byProject)
                 Image(systemName: "arrow.triangle.branch").tag(SidebarViewMode.worktrees)
             }
             .pickerStyle(.segmented)
@@ -101,10 +101,10 @@ struct SidebarView: View {
                 Image(systemName: "arrow.triangle.branch")
                     .font(.system(size: 28))
                     .foregroundStyle(.tertiary)
-                Text("No project selected")
+                Text(L10n.Sidebar.noProject)
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                Text("Launch a session with a working directory to manage worktrees")
+                Text(L10n.Sidebar.noProjectHint)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
@@ -134,31 +134,31 @@ struct SidebarSessionRow: View {
         SessionListItem(session: session, isSelected: isSelected)
             .onTapGesture { onSelect() }
             .contextMenu {
-                Button("Edit Session...") {
+                Button(L10n.Session.edit) {
                     showingEdit = true
                 }
                 Divider()
-                Button("Move Up") {
+                Button(L10n.Session.moveUp) {
                     onMoveUp?()
                 }
-                Button("Move Down") {
+                Button(L10n.Session.moveDown) {
                     onMoveDown?()
                 }
                 Divider()
                 if session.isArchived {
-                    Button("Unarchive Session") {
+                    Button(L10n.Session.unarchive) {
                         onUnarchive?()
                     }
                 } else {
-                    Button("Archive Session") {
+                    Button(L10n.Session.archive) {
                         onArchive?()
                     }
                 }
-                Button("Delete Session...", role: .destructive) {
+                Button(L10n.Session.delete, role: .destructive) {
                     confirmDelete()
                 }
                 Divider()
-                Button("Copy Session ID") {
+                Button(L10n.Session.copyID) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(session.sessionId, forType: .string)
                 }
@@ -180,11 +180,11 @@ struct SidebarSessionRow: View {
 
     private func confirmDelete() {
         let alert = NSAlert()
-        alert.messageText = "Delete \"\(session.name)\"?"
-        alert.informativeText = "The session will be removed from AgentsBoard. Files on disk are not affected."
+        alert.messageText = L10n.Session.deleteTitle(session.name)
+        alert.informativeText = L10n.Session.deleteMessage
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: L10n.delete)
+        alert.addButton(withTitle: L10n.cancel)
         alert.buttons.first?.hasDestructiveAction = true
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         onDelete?()
@@ -214,7 +214,7 @@ struct SessionListItem: View {
                 Spacer()
 
                 if session.isArchived {
-                    Label("Archived", systemImage: "archivebox")
+                    Label(L10n.Sidebar.archived, systemImage: "archivebox")
                         .font(.system(size: 9, weight: .medium))
                         .labelStyle(.iconOnly)
                         .padding(.horizontal, 6)

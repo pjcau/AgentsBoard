@@ -1,0 +1,192 @@
+/* Japanese (ja) — Localizable.strings */
+
+// General
+"cancel" = "キャンセル";
+"save" = "保存";
+"delete" = "削除";
+"dismiss" = "閉じる";
+"create" = "作成";
+"send" = "送信";
+"remove" = "取り除く";
+"refresh" = "更新";
+"approve" = "承認";
+"reject" = "却下";
+"copy" = "コピー";
+
+"app.name" = "AgentsBoard";
+"app.subtitle" = "AIエージェント管制センター";
+"app.no_active_sessions" = "アクティブなセッションはありません";
+"app.launch_session" = "セッションを起動";
+"app.new_session" = "新規セッション";
+"app.open_app" = "アプリを開く";
+"app.quit" = "終了";
+
+"sidebar.search_placeholder" = "セッションを検索...";
+"sidebar.show_archived" = "アーカイブ済みを表示";
+"sidebar.hide_archived" = "アーカイブ済みを非表示";
+"sidebar.new_session_hint" = "新規セッション (Cmd+N)";
+"sidebar.all" = "すべて";
+"sidebar.projects" = "プロジェクト";
+"sidebar.no_project" = "プロジェクト未選択";
+"sidebar.no_project_hint" = "作業ディレクトリを指定してセッションを起動すると、worktreeを管理できます";
+"sidebar.archived" = "アーカイブ済み";
+
+"session.edit" = "セッションを編集...";
+"session.edit_title" = "セッションを編集";
+"session.edit_info_hint" = "セッション情報を編集";
+"session.move_up" = "上へ移動";
+"session.move_down" = "下へ移動";
+"session.archive" = "セッションをアーカイブ";
+"session.unarchive" = "アーカイブを解除";
+"session.delete" = "セッションを削除...";
+"session.delete_title" = "「%@」を削除しますか？";
+"session.delete_message" = "セッションはAgentsBoardから削除されます。ディスク上のファイルには影響しません。";
+"session.copy_id" = "Session IDをコピー";
+"session.rename" = "名前を変更...";
+"session.kill" = "セッションを強制終了";
+"session.restart" = "再起動";
+"session.remix" = "Worktreeに派生";
+"session.start_recording" = "録画を開始";
+"session.stop_recording" = "録画を停止";
+"session.section.session" = "セッション";
+"session.section.execution" = "実行";
+"session.section.git" = "Git";
+"session.name_placeholder" = "セッション名";
+"session.command_placeholder" = "例: claude, aider, codex";
+"session.workdir_placeholder" = "作業ディレクトリ（任意）";
+"session.select_workdir" = "作業ディレクトリを選択";
+
+"tab.terminal" = "Terminal";
+"tab.activity" = "アクティビティ";
+"tab.info" = "情報";
+"tab.files" = "ファイル";
+"tab.diff" = "Diff";
+"tab.restart_terminal" = "Terminalを再起動";
+
+"activity.no_activity" = "まだアクティビティはありません";
+"activity.recent" = "最近のアクティビティ";
+
+"info.provider" = "プロバイダ";
+"info.model" = "モデル";
+"info.state" = "状態";
+"info.name" = "名前";
+"info.session_id" = "Session ID";
+"info.command" = "コマンド";
+"info.duration" = "経過時間";
+"info.cost" = "コスト";
+"info.directory" = "ディレクトリ";
+"info.branch" = "ブランチ";
+"info.links" = "リンク";
+
+"resources.title" = "リソース";
+
+"terminal.waiting" = "出力を待機中...";
+"terminal.no_output" = "出力なし";
+"terminal.no_workdir" = "作業ディレクトリが未設定です";
+"terminal.increase_font" = "フォントサイズを拡大";
+"terminal.decrease_font" = "フォントサイズを縮小";
+"terminal.reset_font" = "フォントサイズをリセット";
+"terminal.toggle_hint" = "Terminalパネルの表示切替 (Cmd+T)";
+
+"fleet.title" = "フリート概要";
+"fleet.total" = "合計";
+"fleet.active" = "稼働中";
+"fleet.needs_input" = "入力待ち";
+"fleet.errors" = "エラー";
+"fleet.total_cost" = "合計コスト";
+"fleet.provider" = "プロバイダ:";
+"fleet.state" = "状態:";
+
+"activity_log.title" = "アクティビティログ";
+"activity_log.last_hour" = "直近1時間";
+"activity_log.today" = "今日";
+"activity_log.all" = "すべて";
+"activity_log.files" = "ファイル";
+"activity_log.commands" = "コマンド";
+"activity_log.errors" = "エラー";
+"activity_log.costs" = "コスト";
+
+"palette.placeholder" = "コマンドを入力...";
+"palette.all" = "すべて";
+"palette.navigate" = "移動";
+"palette.execute" = "実行";
+"palette.dismiss" = "閉じる";
+"palette.commands" = "コマンド";
+
+"diff.unified" = "統合表示";
+"diff.side_by_side" = "並列表示";
+"diff.loading" = "Diffを読み込み中...";
+"diff.no_changes" = "変更は検出されませんでした";
+"diff.reject_title" = "変更を却下しますか？";
+"diff.reject_message" = "%@のステージされていない変更がすべて破棄されます。この操作は取り消せません。";
+"diff.changes_staged" = "変更をステージしました (git add -A)";
+"diff.changes_discarded" = "変更を破棄しました (git checkout)";
+"diff.discard_changes" = "変更を破棄";
+
+"recording.recordings" = "録画";
+"recording.none" = "まだ録画はありません";
+
+"search.placeholder" = "セッション、ファイル、アクティビティを横断検索...";
+"search.all" = "すべて";
+"search.output" = "出力";
+"search.files" = "ファイル";
+"search.activity" = "アクティビティ";
+"search.no_results" = "結果が見つかりません";
+"search.results" = "件";
+
+"plan.title" = "プランモード";
+"plan.tasks" = "タスク";
+
+"diagram.title" = "ダイアグラム";
+"diagram.default" = "デフォルト";
+"diagram.dark" = "ダーク";
+"diagram.forest" = "フォレスト";
+"diagram.neutral" = "ニュートラル";
+"diagram.export" = "エクスポート";
+"diagram.no_diagram" = "表示するダイアグラムがありません";
+
+"drop.files_attached" = "個のファイルを添付";
+"drop.drop_here" = "ここにファイルをドロップ";
+"drop.unsupported" = "非対応のファイル形式です";
+
+"launcher.title" = "セッションを起動";
+"launcher.add_session" = "セッションを追加";
+"launcher.enter_command" = "起動するコマンドを入力";
+"launcher.launch" = "%@を起動";
+
+"smart.title" = "スマートモード";
+"smart.description" = "タスクを入力すると、最適なエージェントを提案します";
+"smart.placeholder" = "何を達成したいですか？";
+"smart.workdir" = "作業ディレクトリ";
+"smart.plan" = "プラン";
+"smart.recommended" = "おすすめ";
+"smart.match" = "%@の一致";
+
+"remix.title" = "Worktreeに派生";
+"remix.fork_message" = "「%@」を独立したブランチに分岐";
+"remix.section.branch" = "ブランチ";
+"remix.section.new_session" = "新規セッション";
+"remix.section.context" = "コンテキスト転送";
+"remix.button" = "派生";
+
+"worktree.title" = "Worktree";
+"worktree.create_hint" = "Worktreeを作成";
+"worktree.refresh_hint" = "更新";
+"worktree.none" = "Worktreeはありません";
+"worktree.open_session" = "ここでセッションを開く";
+"worktree.reveal_finder" = "Finderで表示";
+"worktree.delete" = "Worktreeを削除";
+
+"menubar.cost_by_provider" = "プロバイダ別コスト";
+"menubar.no_sessions" = "アクティブなセッションはありません";
+"menubar.new_session" = "新規セッション";
+
+"file_explorer.workspace" = "ワークスペース";
+
+"editor.select_file" = "表示するファイルを選択";
+
+"nav.launch_session_hint" = "新規セッションを起動 (Cmd+N)";
+
+"appearance.light" = "ライト";
+"appearance.dark" = "ダーク";
+"appearance.auto" = "自動";

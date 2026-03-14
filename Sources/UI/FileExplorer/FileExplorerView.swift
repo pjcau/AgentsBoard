@@ -150,7 +150,7 @@ struct FileTreeRow: View {
 final class FileExplorerViewModel {
     var rootNodes: [FileNode] = []
     var selectedPath: String?
-    var rootName: String = "Workspace"
+    var rootName: String = L10n.FileExplorer.workspace
 
     var onFileSelected: ((String) -> Void)?
 

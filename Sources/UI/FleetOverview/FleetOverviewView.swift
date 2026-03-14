@@ -45,14 +45,14 @@ struct FleetHeaderView: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 20) {
-                MetricView(label: "Total", value: "\(stats.totalSessions)", icon: "cpu", color: .primary)
-                MetricView(label: "Active", value: "\(stats.activeSessions)", icon: "bolt.fill", color: .green)
-                MetricView(label: "Needs Input", value: "\(stats.needsInputCount)", icon: "exclamationmark.circle.fill", color: .yellow)
-                MetricView(label: "Errors", value: "\(stats.errorCount)", icon: "xmark.circle.fill", color: .red)
+                MetricView(label: L10n.Fleet.total, value: "\(stats.totalSessions)", icon: "cpu", color: .primary)
+                MetricView(label: L10n.Fleet.active, value: "\(stats.activeSessions)", icon: "bolt.fill", color: .green)
+                MetricView(label: L10n.Fleet.needsInput, value: "\(stats.needsInputCount)", icon: "exclamationmark.circle.fill", color: .yellow)
+                MetricView(label: L10n.Fleet.errors, value: "\(stats.errorCount)", icon: "xmark.circle.fill", color: .red)
 
                 Spacer(minLength: 16)
 
-                MetricView(label: "Total Cost", value: formatCost(stats.totalCost), icon: "dollarsign.circle", color: .orange)
+                MetricView(label: L10n.Fleet.totalCost, value: formatCost(stats.totalCost), icon: "dollarsign.circle", color: .orange)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
@@ -161,7 +161,7 @@ struct FleetFilterBar: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                Text("Provider:")
+                Text(L10n.Fleet.provider)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 ForEach(AgentProvider.allCases, id: \.self) { provider in
@@ -179,7 +179,7 @@ struct FleetFilterBar: View {
 
                 Divider().frame(height: 20)
 
-                Text("State:")
+                Text(L10n.Fleet.state)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 ForEach([AgentState.working, .needsInput, .error, .inactive], id: \.self) { state in

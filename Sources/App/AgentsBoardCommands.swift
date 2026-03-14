@@ -10,7 +10,7 @@ struct AgentsBoardCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("New Session") {
+            Button(L10n.App.newSession) {
                 navigationState.showingLauncher = true
             }
             .keyboardShortcut("n", modifiers: .command)
@@ -19,12 +19,12 @@ struct AgentsBoardCommands: Commands {
         CommandGroup(after: .sidebar) {
             Divider()
 
-            Button("Fleet Overview") {
+            Button(L10n.Fleet.title) {
                 navigationState.showingFleetOverview = true
             }
             .keyboardShortcut("f", modifiers: [.command, .shift])
 
-            Button("Activity Log") {
+            Button(L10n.ActivityLog.title) {
                 navigationState.showingActivityLog = true
             }
             .keyboardShortcut("l", modifiers: .command)
@@ -36,17 +36,17 @@ struct AgentsBoardCommands: Commands {
         }
 
         CommandMenu("Terminal") {
-            Button("Increase Font Size") {
+            Button(L10n.Terminal.increaseFont) {
                 fontSize = min(fontSize + TerminalFontSize.step, TerminalFontSize.maximum)
             }
             .keyboardShortcut("=", modifiers: .command)
 
-            Button("Decrease Font Size") {
+            Button(L10n.Terminal.decreaseFont) {
                 fontSize = max(fontSize - TerminalFontSize.step, TerminalFontSize.minimum)
             }
             .keyboardShortcut("-", modifiers: .command)
 
-            Button("Reset Font Size") {
+            Button(L10n.Terminal.resetFont) {
                 fontSize = TerminalFontSize.defaultSize
             }
             .keyboardShortcut("0", modifiers: .command)

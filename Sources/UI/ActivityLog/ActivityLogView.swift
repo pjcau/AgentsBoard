@@ -11,9 +11,9 @@ struct ActivityLogView: View {
             // Filter bar
             HStack(spacing: 12) {
                 Picker("Time", selection: $viewModel.timeFilter) {
-                    Text("Last Hour").tag(TimeFilter.lastHour)
-                    Text("Today").tag(TimeFilter.today)
-                    Text("All").tag(TimeFilter.all)
+                    Text(L10n.ActivityLog.lastHour).tag(TimeFilter.lastHour)
+                    Text(L10n.ActivityLog.today).tag(TimeFilter.today)
+                    Text(L10n.ActivityLog.all).tag(TimeFilter.all)
                 }
                 .pickerStyle(.segmented)
                 .frame(minWidth: 180, maxWidth: 280)
@@ -21,11 +21,11 @@ struct ActivityLogView: View {
                 Spacer()
 
                 Picker("Category", selection: $viewModel.categoryFilter) {
-                    Text("All").tag(CategoryFilter.all)
-                    Text("Files").tag(CategoryFilter.files)
-                    Text("Commands").tag(CategoryFilter.commands)
-                    Text("Errors").tag(CategoryFilter.errors)
-                    Text("Costs").tag(CategoryFilter.costs)
+                    Text(L10n.ActivityLog.all).tag(CategoryFilter.all)
+                    Text(L10n.ActivityLog.files).tag(CategoryFilter.files)
+                    Text(L10n.ActivityLog.commands).tag(CategoryFilter.commands)
+                    Text(L10n.ActivityLog.errors).tag(CategoryFilter.errors)
+                    Text(L10n.ActivityLog.costs).tag(CategoryFilter.costs)
                 }
                 .frame(minWidth: 120, maxWidth: 200)
             }

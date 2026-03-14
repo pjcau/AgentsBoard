@@ -1,0 +1,192 @@
+/* Spanish (es) — Localizable.strings */
+
+// General
+"cancel" = "Cancelar";
+"save" = "Guardar";
+"delete" = "Eliminar";
+"dismiss" = "Cerrar";
+"create" = "Crear";
+"send" = "Enviar";
+"remove" = "Quitar";
+"refresh" = "Actualizar";
+"approve" = "Aprobar";
+"reject" = "Rechazar";
+"copy" = "Copiar";
+
+"app.name" = "AgentsBoard";
+"app.subtitle" = "Centro de control de agentes IA";
+"app.no_active_sessions" = "No hay sesiones activas";
+"app.launch_session" = "Iniciar sesión";
+"app.new_session" = "Nueva sesión";
+"app.open_app" = "Abrir aplicación";
+"app.quit" = "Salir";
+
+"sidebar.search_placeholder" = "Buscar sesiones...";
+"sidebar.show_archived" = "Mostrar sesiones archivadas";
+"sidebar.hide_archived" = "Ocultar sesiones archivadas";
+"sidebar.new_session_hint" = "Nueva sesión (Cmd+N)";
+"sidebar.all" = "Todas";
+"sidebar.projects" = "Proyectos";
+"sidebar.no_project" = "Ningún proyecto seleccionado";
+"sidebar.no_project_hint" = "Inicia una sesión con un directorio de trabajo para gestionar worktrees";
+"sidebar.archived" = "Archivadas";
+
+"session.edit" = "Editar sesión...";
+"session.edit_title" = "Editar sesión";
+"session.edit_info_hint" = "Editar información de la sesión";
+"session.move_up" = "Subir";
+"session.move_down" = "Bajar";
+"session.archive" = "Archivar sesión";
+"session.unarchive" = "Desarchivar sesión";
+"session.delete" = "Eliminar sesión...";
+"session.delete_title" = "¿Eliminar «%@»?";
+"session.delete_message" = "La sesión se eliminará de AgentsBoard. Los archivos en disco no se verán afectados.";
+"session.copy_id" = "Copiar Session ID";
+"session.rename" = "Renombrar...";
+"session.kill" = "Terminar sesión";
+"session.restart" = "Reiniciar";
+"session.remix" = "Derivar a worktree";
+"session.start_recording" = "Iniciar grabación";
+"session.stop_recording" = "Detener grabación";
+"session.section.session" = "Sesión";
+"session.section.execution" = "Ejecución";
+"session.section.git" = "Git";
+"session.name_placeholder" = "Nombre de la sesión";
+"session.command_placeholder" = "Ej. claude, aider, codex";
+"session.workdir_placeholder" = "Directorio de trabajo (opcional)";
+"session.select_workdir" = "Seleccionar directorio de trabajo";
+
+"tab.terminal" = "Terminal";
+"tab.activity" = "Actividad";
+"tab.info" = "Información";
+"tab.files" = "Archivos";
+"tab.diff" = "Diff";
+"tab.restart_terminal" = "Reiniciar terminal";
+
+"activity.no_activity" = "Sin actividad aún";
+"activity.recent" = "Actividad reciente";
+
+"info.provider" = "Proveedor";
+"info.model" = "Modelo";
+"info.state" = "Estado";
+"info.name" = "Nombre";
+"info.session_id" = "Session ID";
+"info.command" = "Comando";
+"info.duration" = "Duración";
+"info.cost" = "Coste";
+"info.directory" = "Directorio";
+"info.branch" = "Rama";
+"info.links" = "Enlaces";
+
+"resources.title" = "Recursos";
+
+"terminal.waiting" = "Esperando salida...";
+"terminal.no_output" = "Sin salida";
+"terminal.no_workdir" = "No se ha definido un directorio de trabajo";
+"terminal.increase_font" = "Aumentar tamaño de fuente";
+"terminal.decrease_font" = "Reducir tamaño de fuente";
+"terminal.reset_font" = "Restablecer tamaño de fuente";
+"terminal.toggle_hint" = "Mostrar/ocultar panel de terminal (Cmd+T)";
+
+"fleet.title" = "Vista de flota";
+"fleet.total" = "Total";
+"fleet.active" = "Activos";
+"fleet.needs_input" = "Requieren entrada";
+"fleet.errors" = "Errores";
+"fleet.total_cost" = "Coste total";
+"fleet.provider" = "Proveedor:";
+"fleet.state" = "Estado:";
+
+"activity_log.title" = "Registro de actividad";
+"activity_log.last_hour" = "Última hora";
+"activity_log.today" = "Hoy";
+"activity_log.all" = "Todo";
+"activity_log.files" = "Archivos";
+"activity_log.commands" = "Comandos";
+"activity_log.errors" = "Errores";
+"activity_log.costs" = "Costes";
+
+"palette.placeholder" = "Escribe un comando...";
+"palette.all" = "Todos";
+"palette.navigate" = "navegar";
+"palette.execute" = "ejecutar";
+"palette.dismiss" = "cerrar";
+"palette.commands" = "comandos";
+
+"diff.unified" = "Unificado";
+"diff.side_by_side" = "Lado a lado";
+"diff.loading" = "Cargando diff...";
+"diff.no_changes" = "No se detectaron cambios";
+"diff.reject_title" = "¿Rechazar cambios?";
+"diff.reject_message" = "Se descartarán todos los cambios no preparados en %@. Esta acción no se puede deshacer.";
+"diff.changes_staged" = "Cambios preparados (git add -A)";
+"diff.changes_discarded" = "Cambios descartados (git checkout)";
+"diff.discard_changes" = "Descartar cambios";
+
+"recording.recordings" = "Grabaciones";
+"recording.none" = "Aún no hay grabaciones";
+
+"search.placeholder" = "Buscar en sesiones, archivos, actividad...";
+"search.all" = "Todo";
+"search.output" = "Salida";
+"search.files" = "Archivos";
+"search.activity" = "Actividad";
+"search.no_results" = "No se encontraron resultados";
+"search.results" = "resultados";
+
+"plan.title" = "Modo plan";
+"plan.tasks" = "tareas";
+
+"diagram.title" = "Diagrama";
+"diagram.default" = "Predeterminado";
+"diagram.dark" = "Oscuro";
+"diagram.forest" = "Bosque";
+"diagram.neutral" = "Neutro";
+"diagram.export" = "Exportar";
+"diagram.no_diagram" = "No hay diagrama que mostrar";
+
+"drop.files_attached" = "archivo(s) adjuntado(s)";
+"drop.drop_here" = "Suelta archivos aquí";
+"drop.unsupported" = "Tipo de archivo no compatible";
+
+"launcher.title" = "Iniciar sesiones";
+"launcher.add_session" = "Añadir sesión";
+"launcher.enter_command" = "Introduce un comando para iniciar";
+"launcher.launch" = "Iniciar %@";
+
+"smart.title" = "Modo inteligente";
+"smart.description" = "Describe tu tarea — te sugeriremos el mejor agente";
+"smart.placeholder" = "¿Qué quieres lograr?";
+"smart.workdir" = "Directorio de trabajo";
+"smart.plan" = "Plan";
+"smart.recommended" = "Recomendado";
+"smart.match" = "%@ de coincidencia";
+
+"remix.title" = "Derivar a worktree";
+"remix.fork_message" = "Bifurcar «%@» en una rama aislada";
+"remix.section.branch" = "Rama";
+"remix.section.new_session" = "Nueva sesión";
+"remix.section.context" = "Transferencia de contexto";
+"remix.button" = "Derivar";
+
+"worktree.title" = "Worktrees";
+"worktree.create_hint" = "Crear worktree";
+"worktree.refresh_hint" = "Actualizar";
+"worktree.none" = "No hay worktrees";
+"worktree.open_session" = "Abrir sesión aquí";
+"worktree.reveal_finder" = "Mostrar en Finder";
+"worktree.delete" = "Eliminar worktree";
+
+"menubar.cost_by_provider" = "Coste por proveedor";
+"menubar.no_sessions" = "No hay sesiones activas";
+"menubar.new_session" = "Nueva sesión";
+
+"file_explorer.workspace" = "Espacio de trabajo";
+
+"editor.select_file" = "Selecciona un archivo para ver";
+
+"nav.launch_session_hint" = "Iniciar nueva sesión (Cmd+N)";
+
+"appearance.light" = "Claro";
+"appearance.dark" = "Oscuro";
+"appearance.auto" = "Automático";

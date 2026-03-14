@@ -58,7 +58,7 @@ struct EditorView: View {
                     Image(systemName: "doc.text")
                         .font(.largeTitle)
                         .foregroundStyle(.quaternary)
-                    Text("Select a file to view")
+                    Text(L10n.Editor.selectFile)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

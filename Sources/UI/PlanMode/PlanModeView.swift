@@ -13,12 +13,12 @@ struct PlanModeView: View {
             HStack {
                 Image(systemName: "list.bullet.clipboard")
                     .foregroundStyle(.blue)
-                Text("Plan Mode")
+                Text(L10n.Plan.title)
                     .font(.headline)
 
                 Spacer()
 
-                Text("\(viewModel.completedCount)/\(viewModel.totalCount) tasks")
+                Text("\(viewModel.completedCount)/\(viewModel.totalCount) \(L10n.Plan.tasks)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

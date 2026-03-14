@@ -30,8 +30,8 @@ struct DiffReviewView: View {
                 .font(.callout)
 
                 Picker("View", selection: $viewModel.viewMode) {
-                    Text("Unified").tag(DiffViewMode.unified)
-                    Text("Side by Side").tag(DiffViewMode.sideBySide)
+                    Text(L10n.Diff.unified).tag(DiffViewMode.unified)
+                    Text(L10n.Diff.sideBySide).tag(DiffViewMode.sideBySide)
                 }
                 .pickerStyle(.segmented)
                 .frame(maxWidth: 200)
@@ -39,7 +39,7 @@ struct DiffReviewView: View {
                 Button {
                     viewModel.approve()
                 } label: {
-                    Label("Approve", systemImage: "checkmark")
+                    Label(L10n.approve, systemImage: "checkmark")
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
@@ -47,7 +47,7 @@ struct DiffReviewView: View {
                 Button {
                     viewModel.reject()
                 } label: {
-                    Label("Reject", systemImage: "xmark")
+                    Label(L10n.reject, systemImage: "xmark")
                 }
                 .buttonStyle(.bordered)
                 .tint(.red)

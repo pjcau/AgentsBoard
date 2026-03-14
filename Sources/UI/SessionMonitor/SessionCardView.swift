@@ -6,10 +6,19 @@ import AgentsBoardCore
 // MARK: - Session Tab
 
 enum SessionTab: String, CaseIterable {
-    case terminal = "Terminal"
-    case activity = "Activity"
-    case info = "Info"
-    case files = "Files"
+    case terminal
+    case activity
+    case info
+    case files
+
+    var localizedTitle: String {
+        switch self {
+        case .terminal: return L10n.Tab.terminal
+        case .activity: return L10n.Tab.activity
+        case .info: return L10n.Tab.info
+        case .files: return L10n.Tab.files
+        }
+    }
 
     var icon: String {
         switch self {
@@ -136,7 +145,7 @@ struct SessionCardView: View {
         } else {
             ScrollView(.vertical) {
                 if viewModel.cleanOutput.isEmpty {
-                    Text(viewModel.state == .working ? "Waiting for output..." : "No output")
+                    Text(viewModel.state == .working ? L10n.Terminal.waiting : L10n.Terminal.noOutput)
                         .font(.system(.body, design: .monospaced))
                         .foregroundColor(.gray)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -160,7 +169,7 @@ struct SessionCardView: View {
         if viewModel.workDir != nil, !viewModel.workDir!.isEmpty {
             FileExplorerView(viewModel: fileVM)
         } else {
-            Text("No working directory set")
+            Text(L10n.Terminal.noWorkdir)
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -177,13 +186,13 @@ struct SessionActivityContent: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 2) {
                 if viewModel.activityEntries.isEmpty {
-                    Text("No activity yet")
+                    Text(L10n.Activity.noActivity)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.top, 20)
                 } else {
-                    Text("Recent Activity")
+                    Text(L10n.Activity.recent)
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundStyle(.secondary)
@@ -231,12 +240,12 @@ struct SessionInfoContent: View {
                 // Provider section
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
-                        infoRow(label: "Provider", value: viewModel.provider?.displayName ?? "Unknown")
-                        infoRow(label: "Model", value: viewModel.modelName ?? "—")
-                        infoRow(label: "State", value: viewModel.state.rawValue.capitalized, color: stateColor)
+                        infoRow(label: L10n.Info.provider, value: viewModel.provider?.displayName ?? "Unknown")
+                        infoRow(label: L10n.Info.model, value: viewModel.modelName ?? "—")
+                        infoRow(label: L10n.Info.state, value: viewModel.state.rawValue.capitalized, color: stateColor)
                     }
                 } label: {
-                    Label("Provider", systemImage: "cpu")
+                    Label(L10n.Info.provider, systemImage: "cpu")
                         .font(.caption)
                         .fontWeight(.semibold)
                 }
@@ -244,14 +253,14 @@ struct SessionInfoContent: View {
                 // Session section
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
-                        infoRow(label: "Name", value: viewModel.name)
-                        infoRow(label: "Session ID", value: String(viewModel.sessionId.prefix(12)))
-                        infoRow(label: "Command", value: viewModel.launchCommand ?? "—", mono: true)
-                        infoRow(label: "Duration", value: viewModel.duration)
-                        infoRow(label: "Cost", value: viewModel.cost)
+                        infoRow(label: L10n.Info.name, value: viewModel.name)
+                        infoRow(label: L10n.Info.sessionID, value: String(viewModel.sessionId.prefix(12)))
+                        infoRow(label: L10n.Info.command, value: viewModel.launchCommand ?? "—", mono: true)
+                        infoRow(label: L10n.Info.duration, value: viewModel.duration)
+                        infoRow(label: L10n.Info.cost, value: viewModel.cost)
                     }
                 } label: {
-                    Label("Session", systemImage: "terminal")
+                    Label(L10n.Session.sectionSession, systemImage: "terminal")
                         .font(.caption)
                         .fontWeight(.semibold)
                 }
@@ -259,13 +268,13 @@ struct SessionInfoContent: View {
                 // Project section
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
-                        infoRow(label: "Directory", value: shortenPath(viewModel.workDir ?? "—"), mono: true)
+                        infoRow(label: L10n.Info.directory, value: shortenPath(viewModel.workDir ?? "—"), mono: true)
                         if let branch = viewModel.gitBranch {
-                            infoRow(label: "Branch", value: branch, mono: true, color: .cyan)
+                            infoRow(label: L10n.Info.branch, value: branch, mono: true, color: .cyan)
                         }
                     }
                 } label: {
-                    Label("Project", systemImage: "folder")
+                    Label(L10n.Sidebar.projects, systemImage: "folder")
                         .font(.caption)
                         .fontWeight(.semibold)
                 }
@@ -290,7 +299,7 @@ struct SessionInfoContent: View {
                             }
                         }
                     } label: {
-                        Label("Links", systemImage: "link")
+                        Label(L10n.Info.links, systemImage: "link")
                             .font(.caption)
                             .fontWeight(.semibold)
                     }
@@ -350,7 +359,7 @@ struct SessionTabBar: View {
                     HStack(spacing: 3) {
                         Image(systemName: tab.icon)
                             .font(.system(size: 9))
-                        Text(tab.rawValue)
+                        Text(tab.localizedTitle)
                             .font(.system(size: 10))
                     }
                     .padding(.horizontal, 6)
@@ -369,7 +378,7 @@ struct SessionTabBar: View {
                 HStack(spacing: 3) {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 9))
-                    Text("Diff")
+                    Text(L10n.Tab.diff)
                         .font(.system(size: 10))
                 }
                 .padding(.horizontal, 6)
@@ -388,7 +397,7 @@ struct SessionTabBar: View {
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
-                .help("Restart terminal")
+                .help(L10n.Tab.restartTerminal)
             }
         }
         .padding(.horizontal, 6)
@@ -458,7 +467,7 @@ private struct DiffWindowContentView: View {
             if loading {
                 VStack(spacing: 12) {
                     ProgressView()
-                    Text("Loading diff...")
+                    Text(L10n.Diff.loading)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -468,7 +477,7 @@ private struct DiffWindowContentView: View {
                     Image(systemName: "checkmark.circle")
                         .font(.system(size: 36))
                         .foregroundStyle(.green)
-                    Text(statusMessage ?? "No changes detected")
+                    Text(statusMessage ?? L10n.Diff.noChanges)
                         .font(.title3)
                         .foregroundStyle(.secondary)
                     Text(workDir)
@@ -517,11 +526,11 @@ private struct DiffWindowContentView: View {
 
     private func rejectChanges() {
         let alert = NSAlert()
-        alert.messageText = "Reject Changes?"
-        alert.informativeText = "This will discard all unstaged changes in \(workDir). This cannot be undone."
+        alert.messageText = L10n.Diff.rejectTitle
+        alert.informativeText = L10n.Diff.rejectMessage(workDir)
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Discard Changes")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: L10n.Diff.discardChanges)
+        alert.addButton(withTitle: L10n.cancel)
 
         guard alert.runModal() == .alertFirstButtonReturn else { return }
 
@@ -615,7 +624,7 @@ struct SessionCardHeader: View {
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
-            .help("Edit session info")
+            .help(L10n.Session.editInfoHint)
 
             Text(state.rawValue)
                 .font(.caption2)
@@ -691,35 +700,35 @@ struct SessionContextMenu: View {
     var onDelete: (() -> Void)?
 
     var body: some View {
-        Button("Edit Session...") {
+        Button(L10n.Session.edit) {
             onEdit?()
         }
         Divider()
-        Button("Rename...") {
+        Button(L10n.Session.rename) {
             onRename?(sessionName)
         }
-        Button("Kill Session", role: .destructive) {
+        Button(L10n.Session.kill, role: .destructive) {
             onKill?()
         }
-        Button("Restart") {
+        Button(L10n.Session.restart) {
             onRestart?()
         }
         Divider()
         if projectPath != nil, !(projectPath?.isEmpty ?? true) {
-            Button("Remix to Worktree") { onRemix?() }
+            Button(L10n.Session.remix) { onRemix?() }
         }
-        Button(isRecording ? "Stop Recording" : "Start Recording") {
+        Button(isRecording ? L10n.Session.stopRecording : L10n.Session.startRecording) {
             onToggleRecording?()
         }
         Divider()
-        Button("Archive Session") {
+        Button(L10n.Session.archive) {
             onArchive?()
         }
-        Button("Delete Session...", role: .destructive) {
+        Button(L10n.Session.delete, role: .destructive) {
             confirmDelete()
         }
         Divider()
-        Button("Copy Session ID") {
+        Button(L10n.Session.copyID) {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(sessionId, forType: .string)
         }
@@ -729,11 +738,11 @@ struct SessionContextMenu: View {
 
     private func confirmDelete() {
         let alert = NSAlert()
-        alert.messageText = "Delete \"\(sessionName)\"?"
-        alert.informativeText = "The session will be removed from AgentsBoard. Files on disk are not affected."
+        alert.messageText = L10n.Session.deleteTitle(sessionName)
+        alert.informativeText = L10n.Session.deleteMessage
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: L10n.delete)
+        alert.addButton(withTitle: L10n.cancel)
         alert.buttons.first?.hasDestructiveAction = true
 
         guard alert.runModal() == .alertFirstButtonReturn else { return }
@@ -762,7 +771,7 @@ struct ResourceLinksPanel: View {
                         .font(.caption2)
                         .foregroundStyle(.orange)
 
-                    Text("Resources")
+                    Text(L10n.Resources.title)
                         .font(.caption)
                         .fontWeight(.medium)
 

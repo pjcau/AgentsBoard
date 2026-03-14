@@ -138,10 +138,10 @@ public struct RootView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: { nav.showingLauncher = true }) {
-                    Label("New Session", systemImage: "plus")
+                    Label(L10n.App.newSession, systemImage: "plus")
                 }
                 .keyboardShortcut("n", modifiers: .command)
-                .help("Launch new session (Cmd+N)")
+                .help(L10n.Nav.launchSessionHint)
             }
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -149,11 +149,11 @@ public struct RootView: View {
                         nav.showingBottomTerminal.toggle()
                     }
                 } label: {
-                    Label("Terminal", systemImage: nav.showingBottomTerminal ? "rectangle.bottomhalf.inset.filled" : "rectangle.bottomhalf.inset.filled")
+                    Label(L10n.Tab.terminal, systemImage: nav.showingBottomTerminal ? "rectangle.bottomhalf.inset.filled" : "rectangle.bottomhalf.inset.filled")
                         .foregroundStyle(nav.showingBottomTerminal ? Color.accentColor : .secondary)
                 }
                 .keyboardShortcut("t", modifiers: .command)
-                .help("Toggle terminal panel (Cmd+T)")
+                .help(L10n.Terminal.toggleHint)
             }
             ToolbarItem(placement: .primaryAction) {
                 Menu {
@@ -268,17 +268,17 @@ public struct RootView: View {
             Image(systemName: "cpu")
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
-            Text("AgentsBoard")
+            Text(L10n.App.name)
                 .font(.largeTitle)
                 .fontWeight(.bold)
-            Text("AI Agent Mission Control")
+            Text(L10n.App.subtitle)
                 .font(.title3)
                 .foregroundStyle(.secondary)
-            Text("No active sessions")
+            Text(L10n.App.noActiveSessions)
                 .font(.body)
                 .foregroundStyle(.tertiary)
                 .padding(.top, 8)
-            Button("Launch Session") {
+            Button(L10n.App.launchSession) {
                 nav.showingLauncher = true
             }
             .buttonStyle(.borderedProminent)
@@ -416,7 +416,7 @@ public struct RootView: View {
                     .fill(Color.secondary.opacity(0.4))
                     .frame(width: 36, height: 4)
 
-                Text("Terminal")
+                Text(L10n.Tab.terminal)
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

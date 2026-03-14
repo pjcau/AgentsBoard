@@ -167,10 +167,10 @@ struct RecordingBrowserView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Recordings")
+                Text(L10n.Recording.recordings)
                     .font(.headline)
                 Spacer()
-                Text("\(viewModel.recordings.count) recordings")
+                Text("\(viewModel.recordings.count) \(L10n.Recording.recordings)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -184,7 +184,7 @@ struct RecordingBrowserView: View {
                     Image(systemName: "record.circle")
                         .font(.largeTitle)
                         .foregroundStyle(.quaternary)
-                    Text("No recordings yet")
+                    Text(L10n.Recording.none)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

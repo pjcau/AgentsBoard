@@ -16,7 +16,7 @@ struct CommandPaletteView: View {
                     .font(.title3)
                     .foregroundStyle(.secondary)
 
-                TextField("Type a command...", text: $viewModel.query)
+                TextField(L10n.Palette.placeholder, text: $viewModel.query)
                     .textFieldStyle(.plain)
                     .font(.title3)
                     .focused($isSearchFocused)
@@ -40,7 +40,7 @@ struct CommandPaletteView: View {
             if viewModel.query.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
-                        CategoryTab(title: "All", isSelected: viewModel.selectedCategory == nil) {
+                        CategoryTab(title: L10n.Palette.all, isSelected: viewModel.selectedCategory == nil) {
                             viewModel.selectedCategory = nil
                         }
                         ForEach(CommandCategory.allCases, id: \.self) { category in
@@ -82,11 +82,11 @@ struct CommandPaletteView: View {
 
             // Footer
             HStack {
-                KeyHint(keys: ["↑", "↓"], label: "navigate")
-                KeyHint(keys: ["↩"], label: "execute")
-                KeyHint(keys: ["esc"], label: "dismiss")
+                KeyHint(keys: ["↑", "↓"], label: L10n.Palette.navigate)
+                KeyHint(keys: ["↩"], label: L10n.Palette.execute)
+                KeyHint(keys: ["esc"], label: L10n.Palette.dismiss)
                 Spacer()
-                Text("\(viewModel.results.count) commands")
+                Text("\(viewModel.results.count) \(L10n.Palette.commands)")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }

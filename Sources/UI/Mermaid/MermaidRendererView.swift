@@ -16,21 +16,21 @@ struct MermaidRendererView: View {
             HStack {
                 Image(systemName: "chart.bar.doc.horizontal")
                     .foregroundStyle(.blue)
-                Text("Diagram")
+                Text(L10n.Diagram.title)
                     .font(.headline)
 
                 Spacer()
 
                 Picker("Theme", selection: $viewModel.diagramTheme) {
-                    Text("Default").tag(MermaidTheme.default_)
-                    Text("Dark").tag(MermaidTheme.dark)
-                    Text("Forest").tag(MermaidTheme.forest)
-                    Text("Neutral").tag(MermaidTheme.neutral)
+                    Text(L10n.Diagram.default).tag(MermaidTheme.default_)
+                    Text(L10n.Diagram.dark).tag(MermaidTheme.dark)
+                    Text(L10n.Diagram.forest).tag(MermaidTheme.forest)
+                    Text(L10n.Diagram.neutral).tag(MermaidTheme.neutral)
                 }
                 .frame(maxWidth: 120)
 
                 Button { viewModel.exportAsPNG() } label: {
-                    Label("Export", systemImage: "square.and.arrow.up")
+                    Label(L10n.Diagram.export, systemImage: "square.and.arrow.up")
                 }
                 .buttonStyle(.borderless)
             }
@@ -47,7 +47,7 @@ struct MermaidRendererView: View {
                     Image(systemName: "chart.bar.doc.horizontal")
                         .font(.system(size: 48))
                         .foregroundStyle(.quaternary)
-                    Text("No diagram to display")
+                    Text(L10n.Diagram.noDiagram)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

@@ -18,7 +18,7 @@ struct SessionEditView: View {
         VStack(spacing: 0) {
             // Title bar
             HStack {
-                Text("Edit Session")
+                Text(L10n.Session.editTitle)
                     .font(.headline)
                 Spacer()
                 Button(action: { isPresented = false }) {
@@ -33,7 +33,7 @@ struct SessionEditView: View {
 
             // Form
             Form {
-                Section("Session") {
+                Section(L10n.Session.sectionSession) {
                     TextField("Name", text: $name)
                     Picker("Provider", selection: $provider) {
                         ForEach(AgentProvider.allCases, id: \.self) { p in
@@ -43,7 +43,7 @@ struct SessionEditView: View {
                     .pickerStyle(.menu)
                 }
 
-                Section("Execution") {
+                Section(L10n.Session.sectionExecution) {
                     TextField("Command", text: $command)
                         .font(.system(.body, design: .monospaced))
                     HStack {
@@ -56,7 +56,7 @@ struct SessionEditView: View {
                     }
                 }
 
-                Section("Git") {
+                Section(L10n.Session.sectionGit) {
                     TextField("Branch", text: $gitBranch)
                         .font(.system(.body, design: .monospaced))
                 }
@@ -69,12 +69,12 @@ struct SessionEditView: View {
             // Actions
             HStack {
                 Spacer()
-                Button("Cancel") {
+                Button(L10n.cancel) {
                     isPresented = false
                 }
                 .keyboardShortcut(.cancelAction)
 
-                Button("Save") {
+                Button(L10n.save) {
                     let data = SessionEditData(
                         name: name.trimmingCharacters(in: .whitespaces),
                         command: command.trimmingCharacters(in: .whitespaces),

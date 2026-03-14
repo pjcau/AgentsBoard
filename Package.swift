@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "AgentsBoard",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v14)
     ],
@@ -49,7 +50,10 @@ let package = Package(
                 "AgentsBoardCore",
                 "SwiftTerm",
             ],
-            path: "Sources/UI"
+            path: "Sources/UI",
+            resources: [
+                .process("Localization"),
+            ]
         ),
 
         // CLI control tool

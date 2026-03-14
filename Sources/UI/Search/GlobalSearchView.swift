@@ -14,16 +14,16 @@ struct GlobalSearchView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
 
-                TextField("Search across sessions, files, activity...", text: $viewModel.query)
+                TextField(L10n.Search.placeholder, text: $viewModel.query)
                     .textFieldStyle(.plain)
                     .font(.title3)
                     .onSubmit { viewModel.search() }
 
                 Picker("Scope", selection: $viewModel.scope) {
-                    Text("All").tag(SearchScope.all)
-                    Text("Output").tag(SearchScope.output)
-                    Text("Files").tag(SearchScope.files)
-                    Text("Activity").tag(SearchScope.activity)
+                    Text(L10n.Search.all).tag(SearchScope.all)
+                    Text(L10n.Search.output).tag(SearchScope.output)
+                    Text(L10n.Search.files).tag(SearchScope.files)
+                    Text(L10n.Search.activity).tag(SearchScope.activity)
                 }
                 .frame(maxWidth: 150)
 
@@ -43,7 +43,7 @@ struct GlobalSearchView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.largeTitle)
                         .foregroundStyle(.quaternary)
-                    Text("No results found")
+                    Text(L10n.Search.noResults)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -64,7 +64,7 @@ struct GlobalSearchView: View {
             // Status bar
             if !viewModel.results.isEmpty {
                 HStack {
-                    Text("\(viewModel.results.count) results")
+                    Text("\(viewModel.results.count) \(L10n.Search.results)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()

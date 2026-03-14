@@ -1,0 +1,192 @@
+/* Simplified Chinese (zh-Hans) — Localizable.strings */
+
+// General
+"cancel" = "取消";
+"save" = "保存";
+"delete" = "删除";
+"dismiss" = "关闭";
+"create" = "创建";
+"send" = "发送";
+"remove" = "移除";
+"refresh" = "刷新";
+"approve" = "批准";
+"reject" = "拒绝";
+"copy" = "拷贝";
+
+"app.name" = "AgentsBoard";
+"app.subtitle" = "AI 智能体管控中心";
+"app.no_active_sessions" = "没有活跃的会话";
+"app.launch_session" = "启动会话";
+"app.new_session" = "新建会话";
+"app.open_app" = "打开应用";
+"app.quit" = "退出";
+
+"sidebar.search_placeholder" = "搜索会话...";
+"sidebar.show_archived" = "显示已归档会话";
+"sidebar.hide_archived" = "隐藏已归档会话";
+"sidebar.new_session_hint" = "新建会话 (Cmd+N)";
+"sidebar.all" = "全部";
+"sidebar.projects" = "项目";
+"sidebar.no_project" = "未选择项目";
+"sidebar.no_project_hint" = "启动一个带有工作目录的会话以管理 worktree";
+"sidebar.archived" = "已归档";
+
+"session.edit" = "编辑会话...";
+"session.edit_title" = "编辑会话";
+"session.edit_info_hint" = "编辑会话信息";
+"session.move_up" = "上移";
+"session.move_down" = "下移";
+"session.archive" = "归档会话";
+"session.unarchive" = "取消归档";
+"session.delete" = "删除会话...";
+"session.delete_title" = "删除「%@」？";
+"session.delete_message" = "会话将从 AgentsBoard 中移除，磁盘上的文件不受影响。";
+"session.copy_id" = "拷贝 Session ID";
+"session.rename" = "重命名...";
+"session.kill" = "终止会话";
+"session.restart" = "重启";
+"session.remix" = "派生到 Worktree";
+"session.start_recording" = "开始录制";
+"session.stop_recording" = "停止录制";
+"session.section.session" = "会话";
+"session.section.execution" = "执行";
+"session.section.git" = "Git";
+"session.name_placeholder" = "会话名称";
+"session.command_placeholder" = "例如 claude、aider、codex";
+"session.workdir_placeholder" = "工作目录（可选）";
+"session.select_workdir" = "选择工作目录";
+
+"tab.terminal" = "Terminal";
+"tab.activity" = "活动";
+"tab.info" = "信息";
+"tab.files" = "文件";
+"tab.diff" = "Diff";
+"tab.restart_terminal" = "重启终端";
+
+"activity.no_activity" = "暂无活动";
+"activity.recent" = "最近活动";
+
+"info.provider" = "服务商";
+"info.model" = "模型";
+"info.state" = "状态";
+"info.name" = "名称";
+"info.session_id" = "Session ID";
+"info.command" = "命令";
+"info.duration" = "持续时间";
+"info.cost" = "费用";
+"info.directory" = "目录";
+"info.branch" = "分支";
+"info.links" = "链接";
+
+"resources.title" = "资源";
+
+"terminal.waiting" = "等待输出...";
+"terminal.no_output" = "无输出";
+"terminal.no_workdir" = "未设置工作目录";
+"terminal.increase_font" = "增大字号";
+"terminal.decrease_font" = "减小字号";
+"terminal.reset_font" = "重置字号";
+"terminal.toggle_hint" = "切换终端面板 (Cmd+T)";
+
+"fleet.title" = "集群概览";
+"fleet.total" = "总计";
+"fleet.active" = "运行中";
+"fleet.needs_input" = "等待输入";
+"fleet.errors" = "错误";
+"fleet.total_cost" = "总费用";
+"fleet.provider" = "服务商：";
+"fleet.state" = "状态：";
+
+"activity_log.title" = "活动日志";
+"activity_log.last_hour" = "最近一小时";
+"activity_log.today" = "今天";
+"activity_log.all" = "全部";
+"activity_log.files" = "文件";
+"activity_log.commands" = "命令";
+"activity_log.errors" = "错误";
+"activity_log.costs" = "费用";
+
+"palette.placeholder" = "输入命令...";
+"palette.all" = "全部";
+"palette.navigate" = "导航";
+"palette.execute" = "执行";
+"palette.dismiss" = "关闭";
+"palette.commands" = "命令";
+
+"diff.unified" = "合并视图";
+"diff.side_by_side" = "并排对比";
+"diff.loading" = "加载 Diff 中...";
+"diff.no_changes" = "未检测到变更";
+"diff.reject_title" = "拒绝变更？";
+"diff.reject_message" = "这将丢弃 %@ 中所有未暂存的变更，且无法撤销。";
+"diff.changes_staged" = "变更已暂存 (git add -A)";
+"diff.changes_discarded" = "变更已丢弃 (git checkout)";
+"diff.discard_changes" = "丢弃变更";
+
+"recording.recordings" = "录制";
+"recording.none" = "暂无录制";
+
+"search.placeholder" = "跨会话、文件、活动搜索...";
+"search.all" = "全部";
+"search.output" = "输出";
+"search.files" = "文件";
+"search.activity" = "活动";
+"search.no_results" = "未找到结果";
+"search.results" = "条结果";
+
+"plan.title" = "计划模式";
+"plan.tasks" = "个任务";
+
+"diagram.title" = "图表";
+"diagram.default" = "默认";
+"diagram.dark" = "暗色";
+"diagram.forest" = "森林";
+"diagram.neutral" = "中性";
+"diagram.export" = "导出";
+"diagram.no_diagram" = "没有可显示的图表";
+
+"drop.files_attached" = "个文件已附加";
+"drop.drop_here" = "将文件拖放到此处";
+"drop.unsupported" = "不支持的文件类型";
+
+"launcher.title" = "启动会话";
+"launcher.add_session" = "添加会话";
+"launcher.enter_command" = "输入要启动的命令";
+"launcher.launch" = "启动 %@";
+
+"smart.title" = "智能模式";
+"smart.description" = "描述你的任务——我们将推荐最合适的智能体";
+"smart.placeholder" = "你想完成什么？";
+"smart.workdir" = "工作目录";
+"smart.plan" = "计划";
+"smart.recommended" = "推荐";
+"smart.match" = "%@ 匹配度";
+
+"remix.title" = "派生到 Worktree";
+"remix.fork_message" = "将「%@」分叉到独立分支";
+"remix.section.branch" = "分支";
+"remix.section.new_session" = "新建会话";
+"remix.section.context" = "上下文传递";
+"remix.button" = "派生";
+
+"worktree.title" = "Worktree";
+"worktree.create_hint" = "创建 Worktree";
+"worktree.refresh_hint" = "刷新";
+"worktree.none" = "暂无 Worktree";
+"worktree.open_session" = "在此打开会话";
+"worktree.reveal_finder" = "在 Finder 中显示";
+"worktree.delete" = "删除 Worktree";
+
+"menubar.cost_by_provider" = "按服务商查看费用";
+"menubar.no_sessions" = "没有活跃的会话";
+"menubar.new_session" = "新建会话";
+
+"file_explorer.workspace" = "工作区";
+
+"editor.select_file" = "选择要查看的文件";
+
+"nav.launch_session_hint" = "启动新会话 (Cmd+N)";
+
+"appearance.light" = "浅色";
+"appearance.dark" = "深色";
+"appearance.auto" = "自动";

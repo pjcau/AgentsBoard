@@ -77,10 +77,10 @@ struct MenuBarView: View {
             HStack {
                 Image(systemName: "cpu")
                     .foregroundStyle(Color.accentColor)
-                Text("AgentsBoard")
+                Text(L10n.App.name)
                     .font(.headline)
                 Spacer()
-                Button("Open App") {
+                Button(L10n.App.openApp) {
                     viewModel.openMainWindow()
                 }
                 .font(.caption)
@@ -109,7 +109,7 @@ struct MenuBarView: View {
             // Cost per provider
             if !viewModel.providerCosts.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Cost by Provider")
+                    Text(L10n.MenuBar.costByProvider)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
@@ -126,7 +126,7 @@ struct MenuBarView: View {
 
             // Session list
             if viewModel.sessions.isEmpty {
-                Text("No active sessions")
+                Text(L10n.MenuBar.noSessions)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(20)
@@ -149,13 +149,13 @@ struct MenuBarView: View {
 
             // Footer actions
             HStack {
-                Button("New Session") {
+                Button(L10n.MenuBar.newSession) {
                     viewModel.newSession()
                 }
                 .font(.caption)
                 .buttonStyle(.borderless)
                 Spacer()
-                Button("Quit") {
+                Button(L10n.App.quit) {
                     viewModel.quit()
                 }
                 .font(.caption)

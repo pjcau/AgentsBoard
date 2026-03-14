@@ -1,0 +1,216 @@
+// MARK: - General
+"cancel" = "Cancel";
+"save" = "Save";
+"delete" = "Delete";
+"dismiss" = "Dismiss";
+"create" = "Create";
+"send" = "Send";
+"remove" = "Remove";
+"refresh" = "Refresh";
+"approve" = "Approve";
+"reject" = "Reject";
+"copy" = "Copy";
+
+// MARK: - App
+"app.name" = "AgentsBoard";
+"app.subtitle" = "AI Agent Mission Control";
+"app.no_active_sessions" = "No active sessions";
+"app.launch_session" = "Launch Session";
+"app.new_session" = "New Session";
+"app.open_app" = "Open App";
+"app.quit" = "Quit";
+
+// MARK: - Sidebar
+"sidebar.search_placeholder" = "Search sessions...";
+"sidebar.show_archived" = "Show Archived Sessions";
+"sidebar.hide_archived" = "Hide Archived Sessions";
+"sidebar.new_session_hint" = "New Session (Cmd+N)";
+"sidebar.all" = "All";
+"sidebar.projects" = "Projects";
+"sidebar.no_project" = "No project selected";
+"sidebar.no_project_hint" = "Launch a session with a working directory to manage worktrees";
+"sidebar.archived" = "Archived";
+
+// MARK: - Session
+"session.edit" = "Edit Session...";
+"session.edit_title" = "Edit Session";
+"session.edit_info_hint" = "Edit session info";
+"session.move_up" = "Move Up";
+"session.move_down" = "Move Down";
+"session.archive" = "Archive Session";
+"session.unarchive" = "Unarchive Session";
+"session.delete" = "Delete Session...";
+"session.delete_title" = "Delete \"%@\"?";
+"session.delete_message" = "The session will be removed from AgentsBoard. Files on disk are not affected.";
+"session.copy_id" = "Copy Session ID";
+"session.rename" = "Rename...";
+"session.kill" = "Kill Session";
+"session.restart" = "Restart";
+"session.remix" = "Remix to Worktree";
+"session.start_recording" = "Start Recording";
+"session.stop_recording" = "Stop Recording";
+"session.section.session" = "Session";
+"session.section.execution" = "Execution";
+"session.section.git" = "Git";
+"session.name_placeholder" = "Session name";
+"session.command_placeholder" = "e.g. claude, aider, codex";
+"session.workdir_placeholder" = "Working directory (optional)";
+"session.select_workdir" = "Select working directory";
+
+// MARK: - Tabs
+"tab.terminal" = "Terminal";
+"tab.activity" = "Activity";
+"tab.info" = "Info";
+"tab.files" = "Files";
+"tab.diff" = "Diff";
+"tab.restart_terminal" = "Restart terminal";
+
+// MARK: - Activity
+"activity.no_activity" = "No activity yet";
+"activity.recent" = "Recent Activity";
+
+// MARK: - Info
+"info.provider" = "Provider";
+"info.model" = "Model";
+"info.state" = "State";
+"info.name" = "Name";
+"info.session_id" = "Session ID";
+"info.command" = "Command";
+"info.duration" = "Duration";
+"info.cost" = "Cost";
+"info.directory" = "Directory";
+"info.branch" = "Branch";
+"info.links" = "Links";
+
+// MARK: - Resources
+"resources.title" = "Resources";
+
+// MARK: - Terminal
+"terminal.waiting" = "Waiting for output...";
+"terminal.no_output" = "No output";
+"terminal.no_workdir" = "No working directory set";
+"terminal.increase_font" = "Increase Font Size";
+"terminal.decrease_font" = "Decrease Font Size";
+"terminal.reset_font" = "Reset Font Size";
+"terminal.toggle_hint" = "Toggle terminal panel (Cmd+T)";
+
+// MARK: - Fleet
+"fleet.title" = "Fleet Overview";
+"fleet.total" = "Total";
+"fleet.active" = "Active";
+"fleet.needs_input" = "Needs Input";
+"fleet.errors" = "Errors";
+"fleet.total_cost" = "Total Cost";
+"fleet.provider" = "Provider:";
+"fleet.state" = "State:";
+
+// MARK: - Activity Log
+"activity_log.title" = "Activity Log";
+"activity_log.last_hour" = "Last Hour";
+"activity_log.today" = "Today";
+"activity_log.all" = "All";
+"activity_log.files" = "Files";
+"activity_log.commands" = "Commands";
+"activity_log.errors" = "Errors";
+"activity_log.costs" = "Costs";
+
+// MARK: - Command Palette
+"palette.placeholder" = "Type a command...";
+"palette.all" = "All";
+"palette.navigate" = "navigate";
+"palette.execute" = "execute";
+"palette.dismiss" = "dismiss";
+"palette.commands" = "commands";
+
+// MARK: - Diff
+"diff.unified" = "Unified";
+"diff.side_by_side" = "Side by Side";
+"diff.loading" = "Loading diff...";
+"diff.no_changes" = "No changes detected";
+"diff.reject_title" = "Reject Changes?";
+"diff.reject_message" = "This will discard all unstaged changes in %@. This cannot be undone.";
+"diff.changes_staged" = "Changes staged (git add -A)";
+"diff.changes_discarded" = "Changes discarded (git checkout)";
+"diff.discard_changes" = "Discard Changes";
+
+// MARK: - Recordings
+"recording.recordings" = "Recordings";
+"recording.none" = "No recordings yet";
+
+// MARK: - Search
+"search.placeholder" = "Search across sessions, files, activity...";
+"search.all" = "All";
+"search.output" = "Output";
+"search.files" = "Files";
+"search.activity" = "Activity";
+"search.no_results" = "No results found";
+"search.results" = "results";
+
+// MARK: - Plan
+"plan.title" = "Plan Mode";
+"plan.tasks" = "tasks";
+
+// MARK: - Diagram
+"diagram.title" = "Diagram";
+"diagram.default" = "Default";
+"diagram.dark" = "Dark";
+"diagram.forest" = "Forest";
+"diagram.neutral" = "Neutral";
+"diagram.export" = "Export";
+"diagram.no_diagram" = "No diagram to display";
+
+// MARK: - Drag & Drop
+"drop.files_attached" = "file(s) attached";
+"drop.drop_here" = "Drop files here";
+"drop.unsupported" = "Unsupported file type";
+
+// MARK: - Launcher
+"launcher.title" = "Launch Sessions";
+"launcher.add_session" = "Add Session";
+"launcher.enter_command" = "Enter a command to launch";
+"launcher.launch" = "Launch %@";
+
+// MARK: - Smart Mode
+"smart.title" = "Smart Mode";
+"smart.description" = "Describe your task — we'll suggest the best agent";
+"smart.placeholder" = "What do you want to accomplish?";
+"smart.workdir" = "Working Directory";
+"smart.plan" = "Plan";
+"smart.recommended" = "Recommended";
+"smart.match" = "%@ match";
+
+// MARK: - Remix
+"remix.title" = "Remix to Worktree";
+"remix.fork_message" = "Fork \"%@\" into an isolated branch";
+"remix.section.branch" = "Branch";
+"remix.section.new_session" = "New Session";
+"remix.section.context" = "Context Transfer";
+"remix.button" = "Remix";
+
+// MARK: - Worktree
+"worktree.title" = "Worktrees";
+"worktree.create_hint" = "Create worktree";
+"worktree.refresh_hint" = "Refresh";
+"worktree.none" = "No worktrees";
+"worktree.open_session" = "Open Session Here";
+"worktree.reveal_finder" = "Reveal in Finder";
+"worktree.delete" = "Delete Worktree";
+
+// MARK: - Menu Bar
+"menubar.cost_by_provider" = "Cost by Provider";
+"menubar.no_sessions" = "No active sessions";
+"menubar.new_session" = "New Session";
+
+// MARK: - File Explorer
+"file_explorer.workspace" = "Workspace";
+
+// MARK: - Editor
+"editor.select_file" = "Select a file to view";
+
+// MARK: - Navigation
+"nav.launch_session_hint" = "Launch new session (Cmd+N)";
+
+// MARK: - Appearance
+"appearance.light" = "Light";
+"appearance.dark" = "Dark";
+"appearance.auto" = "Auto";
