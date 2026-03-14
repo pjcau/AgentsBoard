@@ -5,7 +5,7 @@ import Foundation
 import Metal
 import MetalKit
 
-final class MetalRenderer: NSObject, TerminalRenderable, MTKViewDelegate {
+public final class MetalRenderer: NSObject, TerminalRenderable, MTKViewDelegate {
 
     // MARK: - Properties
 
@@ -39,7 +39,7 @@ final class MetalRenderer: NSObject, TerminalRenderable, MTKViewDelegate {
 
     // MARK: - Init
 
-    init?(device: MTLDevice? = nil) {
+    public init?(device: MTLDevice? = nil) {
         guard let dev = device ?? MTLCreateSystemDefaultDevice() else { return nil }
         self.device = dev
         guard let queue = dev.makeCommandQueue() else { return nil }
@@ -55,23 +55,23 @@ final class MetalRenderer: NSObject, TerminalRenderable, MTKViewDelegate {
 
     // MARK: - TerminalRenderable
 
-    func render(viewports: [TerminalViewportData]) {
+    public func render(viewports: [TerminalViewportData]) {
         pendingViewports = viewports
     }
 
-    func updateGlyphAtlas(fontFamily: String, fontSize: CGFloat) {
+    public func updateGlyphAtlas(fontFamily: String, fontSize: CGFloat) {
         glyphAtlas.build(fontFamily: fontFamily, fontSize: fontSize)
     }
 
-    func invalidate() {
+    public func invalidate() {
         pendingViewports = []
     }
 
     // MARK: - MTKViewDelegate
 
-    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+    public func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
-    func draw(in view: MTKView) {
+    public func draw(in view: MTKView) {
         guard let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor,
               let commandBuffer = commandQueue.makeCommandBuffer() else { return }

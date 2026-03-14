@@ -22,6 +22,7 @@ struct SettingsView: View {
                 Spacer()
             }
             .padding(16)
+            .background(Color(nsColor: .windowBackgroundColor))
 
             Divider()
 
@@ -90,6 +91,7 @@ struct SettingsView: View {
             }
         }
         .frame(minWidth: 260, idealWidth: 300, maxWidth: 340)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     // MARK: - Helpers
