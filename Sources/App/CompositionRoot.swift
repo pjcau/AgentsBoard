@@ -106,8 +106,8 @@ final class CompositionRoot {
     // MARK: - Session Launch
 
     func launchSession(command: String, name: String, workdir: String?) {
-        // We no longer launch the PTY here — SwiftTerm's LocalProcessTerminalView
-        // manages its own PTY. We just register a session placeholder.
+        print("[LaunchSession] Creating session: \(name) cmd=\(command) workdir=\(workdir ?? "nil")")
+
         let session = TerminalSession()
         let agentSession = AgentSessionAdapter(
             terminal: session,
@@ -115,6 +115,8 @@ final class CompositionRoot {
             projectPath: workdir,
             command: command
         )
+
+        print("[LaunchSession] Registering session \(agentSession.sessionId) in fleet")
         fleetManager.register(agentSession)
         navigationState.selectedSessionId = agentSession.sessionId
 
@@ -123,6 +125,7 @@ final class CompositionRoot {
             eventType: .stateChange,
             details: "Session launched: \(name) — \(command)"
         ))
+        print("[LaunchSession] Done. Fleet now has \(fleetManager.sessions.count) sessions")
     }
 
     // MARK: - Session Remix

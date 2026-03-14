@@ -35,10 +35,13 @@ public final class LauncherPresenter {
         let view = LauncherContentView(
             taskRouter: taskRouter,
             onLaunch: { [weak self] entries in
+                print("[Launcher] onLaunch callback fired with \(entries.count) entries")
                 onLaunch(entries)
+                print("[Launcher] Calling dismiss")
                 self?.dismiss()
             },
             onCancel: { [weak self] in
+                print("[Launcher] Cancel pressed")
                 self?.dismiss()
             }
         )
@@ -155,7 +158,11 @@ private struct LauncherContentView: View {
                 presentClonePanel(entries: $entries)
             }, onLaunch: {
                 let valid = entries.filter { !$0.command.trimmingCharacters(in: .whitespaces).isEmpty }
-                guard !valid.isEmpty else { return }
+                print("[LauncherContent] Launch pressed. \(entries.count) entries, \(valid.count) valid")
+                guard !valid.isEmpty else {
+                    print("[LauncherContent] No valid entries — aborting")
+                    return
+                }
                 let launchEntries = valid.map { data in
                     var entry = LaunchEntry()
                     entry.name = data.name
@@ -164,6 +171,7 @@ private struct LauncherContentView: View {
                     entry.workDir = data.workDir
                     return entry
                 }
+                print("[LauncherContent] Calling onLaunch with \(launchEntries.count) entries")
                 onLaunch(launchEntries)
             })
         }

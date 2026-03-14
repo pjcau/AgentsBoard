@@ -143,6 +143,27 @@ public struct RootView: View {
                 .keyboardShortcut("n", modifiers: .command)
                 .help(L10n.Nav.launchSessionHint)
             }
+            #if DEBUG
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: {
+                    for i in 1...10 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.1) {
+                            var entry = LaunchEntry()
+                            entry.name = "Claude \(i)"
+                            entry.provider = .claude
+                            entry.command = "claude"
+                            onLaunchEntries([entry])
+                        }
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        fleet.refresh()
+                    }
+                }) {
+                    Label("10x Debug", systemImage: "square.grid.3x3")
+                }
+                .help("Debug: Create 10 Claude sessions")
+            }
+            #endif
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     withAnimation(.easeInOut(duration: 0.25)) {
@@ -302,32 +323,87 @@ public struct RootView: View {
     private var sessionGrid: some View {
         GeometryReader { geo in
             let sessions = fleet.sessions
-            let frames = layoutEngine.computeFrames(
-                cardCount: sessions.count,
-                in: geo.size,
-                mode: nav.layoutMode
-            )
-            ZStack {
-                ForEach(Array(sessions.enumerated()), id: \.element.sessionId) { index, session in
-                    if index < frames.count {
-                        let frame = frames[index]
-                        let vm = viewModel(for: session)
-                        let isSelected = nav.selectedSessionId == session.sessionId
-                        SessionCardView(viewModel: vm)
-                            .frame(width: frame.rect.width, height: frame.rect.height)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .strokeBorder(Color.green, lineWidth: isSelected ? 3 : 0)
-                            )
-                            .shadow(color: isSelected ? .green.opacity(0.3) : .clear, radius: 6)
-                            .position(x: frame.rect.midX, y: frame.rect.midY)
-                            .onTapGesture {
-                                nav.selectedSessionId = session.sessionId
-                                sidebarVM.selectedSessionId = session.sessionId
+            let needsScroll = sessions.count > 6
+
+            if needsScroll {
+                // Scrollable grid for many sessions — cards keep minimum height
+                let columns = columnsForMode(nav.layoutMode, width: geo.size.width)
+                let minCardHeight: CGFloat = 280
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical) {
+                        LazyVGrid(columns: columns, spacing: 8) {
+                            ForEach(sessions, id: \.sessionId) { session in
+                                let vm = viewModel(for: session)
+                                let isSelected = nav.selectedSessionId == session.sessionId
+                                SessionCardView(viewModel: vm)
+                                    .frame(minHeight: minCardHeight)
+                                    .id(session.sessionId)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .strokeBorder(Color.green, lineWidth: isSelected ? 3 : 0)
+                                    )
+                                    .shadow(color: isSelected ? .green.opacity(0.3) : .clear, radius: 6)
+                                    .onTapGesture {
+                                        nav.selectedSessionId = session.sessionId
+                                        sidebarVM.selectedSessionId = session.sessionId
+                                    }
                             }
+                        }
+                        .padding(8)
+                    }
+                    .onChange(of: nav.selectedSessionId) { _, newId in
+                        guard let id = newId else { return }
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            proxy.scrollTo(id, anchor: .center)
+                        }
+                    }
+                }
+            } else {
+                // Absolute-positioned layout for <=6 sessions
+                let frames = layoutEngine.computeFrames(
+                    cardCount: sessions.count,
+                    in: geo.size,
+                    mode: nav.layoutMode
+                )
+                ZStack {
+                    ForEach(Array(sessions.enumerated()), id: \.element.sessionId) { index, session in
+                        if index < frames.count {
+                            let frame = frames[index]
+                            let vm = viewModel(for: session)
+                            let isSelected = nav.selectedSessionId == session.sessionId
+                            SessionCardView(viewModel: vm)
+                                .frame(width: frame.rect.width, height: frame.rect.height)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .strokeBorder(Color.green, lineWidth: isSelected ? 3 : 0)
+                                )
+                                .shadow(color: isSelected ? .green.opacity(0.3) : .clear, radius: 6)
+                                .position(x: frame.rect.midX, y: frame.rect.midY)
+                                .onTapGesture {
+                                    nav.selectedSessionId = session.sessionId
+                                    sidebarVM.selectedSessionId = session.sessionId
+                                }
+                        }
                     }
                 }
             }
+        }
+    }
+
+    private func columnsForMode(_ mode: LayoutMode, width: CGFloat) -> [GridItem] {
+        let minWidth: CGFloat = 320
+        switch mode {
+        case .single:
+            return [GridItem(.flexible(minimum: minWidth))]
+        case .list:
+            return [GridItem(.flexible(minimum: minWidth))]
+        case .twoColumn:
+            return Array(repeating: GridItem(.flexible(minimum: minWidth), spacing: 8), count: 2)
+        case .threeColumn:
+            return Array(repeating: GridItem(.flexible(minimum: minWidth), spacing: 8), count: 3)
+        case .fleet:
+            let count = max(2, Int(width / minWidth))
+            return Array(repeating: GridItem(.flexible(minimum: minWidth), spacing: 8), count: count)
         }
     }
 

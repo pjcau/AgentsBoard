@@ -39,13 +39,16 @@ struct AgentsBoardApp: App {
                 recorder: compositionRoot.recorder,
                 taskRouter: compositionRoot.taskRouter,
                 onLaunchEntries: { entries in
-                    for entry in entries {
+                    print("[App] onLaunchEntries called with \(entries.count) entries")
+                    for (i, entry) in entries.enumerated() {
+                        print("[App] Launching entry \(i+1)/\(entries.count): \(entry.name) cmd=\(entry.command)")
                         compositionRoot.launchSession(
                             command: entry.command,
                             name: entry.name,
                             workdir: entry.workDir.isEmpty ? nil : entry.workDir
                         )
                     }
+                    print("[App] All entries launched")
                 },
                 onRemix: { config, session in
                     compositionRoot.remixSession(config: config, sourceSession: session)
