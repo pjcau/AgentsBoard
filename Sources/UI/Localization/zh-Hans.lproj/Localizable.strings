@@ -194,3 +194,7 @@
 "launcher.from_repo" = "从仓库创建";
 "launcher.select_repo" = "选择一个Git仓库来创建会话";
 "launcher.open_repo" = "打开";
+
+"launcher.clone_title" = "克隆仓库";
+"launcher.clone_button" = "克隆并启动";
+"launcher.clone_destination" = "目标文件夹";

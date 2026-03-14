@@ -252,9 +252,9 @@ public enum L10n {
     public enum Launcher {
         public static var title: String { tr("launcher.title") }
         public static var addSession: String { tr("launcher.add_session") }
-        public static var fromRepo: String { tr("launcher.from_repo") }
-        public static var selectRepo: String { tr("launcher.select_repo") }
-        public static var openRepo: String { tr("launcher.open_repo") }
+        public static var cloneTitle: String { tr("launcher.clone_title") }
+        public static var cloneButton: String { tr("launcher.clone_button") }
+        public static var cloneDestination: String { tr("launcher.clone_destination") }
         public static var enterCommand: String { tr("launcher.enter_command") }
         /// "Launch <name>"
         public static func launch(_ name: String) -> String {

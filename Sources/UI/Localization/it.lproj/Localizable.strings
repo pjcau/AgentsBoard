@@ -166,3 +166,7 @@
 "launcher.from_repo" = "Da Repository";
 "launcher.select_repo" = "Seleziona un repository Git per creare una sessione";
 "launcher.open_repo" = "Apri";
+
+"launcher.clone_title" = "Clona Repository";
+"launcher.clone_button" = "Clona e Avvia";
+"launcher.clone_destination" = "Cartella destinazione";

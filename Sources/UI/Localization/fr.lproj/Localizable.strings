@@ -166,3 +166,7 @@
 "launcher.from_repo" = "Depuis un depot";
 "launcher.select_repo" = "Selectionnez un depot Git pour creer une session";
 "launcher.open_repo" = "Ouvrir";
+
+"launcher.clone_title" = "Cloner un depot";
+"launcher.clone_button" = "Cloner et lancer";
+"launcher.clone_destination" = "Dossier de destination";

@@ -90,6 +90,7 @@ private struct LauncherContentView: View {
 
     @State private var entries: [LaunchEntryData] = [LaunchEntryData()]
     @State private var selectedTab: LauncherTab = .manual
+    @State private var showCloneSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -151,31 +152,8 @@ private struct LauncherContentView: View {
             // Footer
             LauncherFooter(entries: $entries, onAdd: {
                 entries.append(LaunchEntryData())
-            }, onAddFromRepo: {
-                let panel = NSOpenPanel()
-                panel.canChooseFiles = false
-                panel.canChooseDirectories = true
-                panel.allowsMultipleSelection = true
-                panel.message = L10n.Launcher.selectRepo
-                panel.prompt = L10n.Launcher.openRepo
-                if panel.runModal() == .OK {
-                    for url in panel.urls {
-                        if let repo = detectRepo(at: url.path) {
-                            var entry = LaunchEntryData()
-                            entry.name = repo.name
-                            entry.provider = repo.suggestedProvider
-                            entry.command = repo.suggestedProvider.defaultCommand
-                            entry.workDir = repo.path
-                            entries.append(entry)
-                        } else {
-                            // Not a git repo — still add with directory
-                            var entry = LaunchEntryData()
-                            entry.name = url.lastPathComponent
-                            entry.workDir = url.path
-                            entries.append(entry)
-                        }
-                    }
-                }
+            }, onCloneRepo: {
+                showCloneSheet = true
             }, onLaunch: {
                 let valid = entries.filter { !$0.command.trimmingCharacters(in: .whitespaces).isEmpty }
                 guard !valid.isEmpty else { return }
@@ -190,7 +168,218 @@ private struct LauncherContentView: View {
                 onLaunch(launchEntries)
             })
         }
+        .sheet(isPresented: $showCloneSheet) {
+            CloneRepoSheet(isPresented: $showCloneSheet) { clonedPath in
+                if let repo = detectRepo(at: clonedPath) {
+                    var entry = LaunchEntryData()
+                    entry.name = repo.name
+                    entry.provider = repo.suggestedProvider
+                    entry.command = repo.suggestedProvider.defaultCommand
+                    entry.workDir = repo.path
+                    entries.append(entry)
+                }
+            }
+        }
     }
+}
+
+// MARK: - Clone Repository Sheet
+
+private struct CloneRepoSheet: View {
+    @Binding var isPresented: Bool
+    let onCloned: (String) -> Void
+
+    @State private var repoURL = ""
+    @State private var destinationDir = defaultCloneDir()
+    @State private var isCloning = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(L10n.Launcher.cloneTitle)
+                    .font(.headline)
+                Spacer()
+                Button(action: { isPresented = false }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding()
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 12) {
+                // Git URL field
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Git URL")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("https://github.com/user/repo.git", text: $repoURL)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(.body, design: .monospaced))
+                }
+
+                // Destination directory
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L10n.Launcher.cloneDestination)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HStack {
+                        TextField("~/Projects", text: $destinationDir)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.body, design: .monospaced))
+                        Button {
+                            let panel = NSOpenPanel()
+                            panel.canChooseFiles = false
+                            panel.canChooseDirectories = true
+                            panel.allowsMultipleSelection = false
+                            if !destinationDir.isEmpty {
+                                panel.directoryURL = URL(fileURLWithPath: destinationDir)
+                            }
+                            if panel.runModal() == .OK, let url = panel.url {
+                                destinationDir = url.path
+                            }
+                        } label: {
+                            Image(systemName: "folder")
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+
+                // Repo name preview
+                if let repoName = extractRepoName(from: repoURL) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.triangle.branch")
+                            .font(.caption)
+                        Text(repoName)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                        Image(systemName: "arrow.right")
+                            .font(.caption2)
+                        Text(destinationDir + "/" + repoName)
+                            .font(.system(.caption, design: .monospaced))
+                            .lineLimit(1)
+                            .truncationMode(.head)
+                    }
+                    .foregroundStyle(.secondary)
+                }
+
+                if let error = errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+            .padding()
+
+            Divider()
+
+            HStack {
+                Spacer()
+                Button(L10n.cancel) { isPresented = false }
+                    .keyboardShortcut(.cancelAction)
+
+                Button(action: cloneRepo) {
+                    if isCloning {
+                        ProgressView()
+                            .controlSize(.small)
+                            .padding(.horizontal, 4)
+                    } else {
+                        Text(L10n.Launcher.cloneButton)
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(repoURL.trimmingCharacters(in: .whitespaces).isEmpty || isCloning)
+            }
+            .padding()
+        }
+        .frame(width: 480, height: 340)
+    }
+
+    private func cloneRepo() {
+        let url = repoURL.trimmingCharacters(in: .whitespaces)
+        guard !url.isEmpty else { return }
+        guard let repoName = extractRepoName(from: url) else {
+            errorMessage = "Invalid Git URL"
+            return
+        }
+
+        let dest = (destinationDir as NSString).expandingTildeInPath
+        let targetPath = (dest as NSString).appendingPathComponent(repoName)
+
+        // Check if already exists
+        if FileManager.default.fileExists(atPath: targetPath) {
+            // Already cloned — just use it
+            isPresented = false
+            onCloned(targetPath)
+            return
+        }
+
+        isCloning = true
+        errorMessage = nil
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let process = Process()
+            let errPipe = Pipe()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            process.arguments = ["clone", url, targetPath]
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = errPipe
+
+            do {
+                try process.run()
+                process.waitUntilExit()
+
+                let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+                let errStr = String(data: errData, encoding: .utf8) ?? ""
+
+                DispatchQueue.main.async {
+                    isCloning = false
+                    if process.terminationStatus == 0 {
+                        isPresented = false
+                        onCloned(targetPath)
+                    } else {
+                        errorMessage = errStr.isEmpty ? "Clone failed (exit \(process.terminationStatus))" : errStr.trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    isCloning = false
+                    errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private static func defaultCloneDir() -> String {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let projects = (home as NSString).appendingPathComponent("Projects")
+        if FileManager.default.fileExists(atPath: projects) { return projects }
+        let dev = (home as NSString).appendingPathComponent("Developer")
+        if FileManager.default.fileExists(atPath: dev) { return dev }
+        return (home as NSString).appendingPathComponent("Documents")
+    }
+}
+
+private func extractRepoName(from urlString: String) -> String? {
+    let trimmed = urlString.trimmingCharacters(in: .whitespaces)
+    guard !trimmed.isEmpty else { return nil }
+    // Handle both https://github.com/user/repo.git and git@github.com:user/repo.git
+    let cleaned = trimmed.hasSuffix(".git") ? String(trimmed.dropLast(4)) : trimmed
+    if let lastSlash = cleaned.lastIndex(of: "/") {
+        let name = String(cleaned[cleaned.index(after: lastSlash)...])
+        return name.isEmpty ? nil : name
+    }
+    if let lastColon = cleaned.lastIndex(of: ":") {
+        let afterColon = String(cleaned[cleaned.index(after: lastColon)...])
+        if let lastSlash = afterColon.lastIndex(of: "/") {
+            return String(afterColon[afterColon.index(after: lastSlash)...])
+        }
+        return afterColon.isEmpty ? nil : afterColon
+    }
+    return nil
 }
 
 // MARK: - Footer
@@ -198,7 +387,7 @@ private struct LauncherContentView: View {
 private struct LauncherFooter: View {
     @Binding var entries: [LaunchEntryData]
     let onAdd: () -> Void
-    let onAddFromRepo: () -> Void
+    let onCloneRepo: () -> Void
     let onLaunch: () -> Void
 
     private var validCount: Int {
@@ -212,8 +401,8 @@ private struct LauncherFooter: View {
             }
             .buttonStyle(.borderless)
 
-            Button(action: onAddFromRepo) {
-                Label(L10n.Launcher.fromRepo, systemImage: "folder.badge.gearshape")
+            Button(action: onCloneRepo) {
+                Label(L10n.Launcher.cloneButton, systemImage: "arrow.down.circle")
             }
             .buttonStyle(.borderless)
 

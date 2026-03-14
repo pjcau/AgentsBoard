@@ -194,3 +194,7 @@
 "launcher.from_repo" = "リポジトリから";
 "launcher.select_repo" = "セッションを作成するGitリポジトリを選択";
 "launcher.open_repo" = "開く";
+
+"launcher.clone_title" = "リポジトリをクローン";
+"launcher.clone_button" = "クローンして起動";
+"launcher.clone_destination" = "保存先フォルダ";
