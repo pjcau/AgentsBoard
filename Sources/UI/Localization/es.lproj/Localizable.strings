@@ -82,6 +82,7 @@
 
 "terminal.waiting" = "Esperando salida...";
 "terminal.no_output" = "Sin salida";
+"terminal.select_to_activate" = "Haz clic para activar terminal";
 "terminal.no_workdir" = "No se ha definido un directorio de trabajo";
 "terminal.increase_font" = "Aumentar tamaño de fuente";
 "terminal.decrease_font" = "Reducir tamaño de fuente";

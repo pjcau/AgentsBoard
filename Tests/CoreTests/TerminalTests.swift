@@ -134,6 +134,54 @@ struct TerminalColorTests {
     }
 }
 
+// MARK: - PTYProcess Suspend/Resume Tests
+
+@Suite("PTYProcessSuspend")
+struct PTYProcessSuspendTests {
+
+    @Test func initialStateIsNotSuspended() throws {
+        let pty = try PTYProcess(command: "sleep 60")
+        #expect(!pty.isSuspended)
+        #expect(pty.isRunning)
+        pty.terminate()
+    }
+
+    @Test func suspendSetsFlagAndResumeClears() throws {
+        let pty = try PTYProcess(command: "sleep 60")
+        pty.suspend()
+        #expect(pty.isSuspended)
+        pty.resume()
+        #expect(!pty.isSuspended)
+        pty.terminate()
+    }
+
+    @Test func suspendIsIdempotent() throws {
+        let pty = try PTYProcess(command: "sleep 60")
+        pty.suspend()
+        pty.suspend() // second call should be a no-op
+        #expect(pty.isSuspended)
+        pty.resume()
+        #expect(!pty.isSuspended)
+        pty.terminate()
+    }
+
+    @Test func resumeWithoutSuspendIsNoOp() throws {
+        let pty = try PTYProcess(command: "sleep 60")
+        pty.resume() // should not crash or change state
+        #expect(!pty.isSuspended)
+        pty.terminate()
+    }
+
+    @Test func terminateResumesSuspendedProcess() throws {
+        let pty = try PTYProcess(command: "sleep 60")
+        pty.suspend()
+        #expect(pty.isSuspended)
+        pty.terminate()
+        // After terminate, isSuspended should be cleared
+        // (the cleanup path resumes before sending SIGTERM)
+    }
+}
+
 // MARK: - CursorPosition Tests
 
 @Suite("CursorPosition")

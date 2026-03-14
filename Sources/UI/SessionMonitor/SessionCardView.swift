@@ -36,6 +36,7 @@ struct SessionCardView: View {
     @State private var terminalId = UUID()
     @State private var fileVM = FileExplorerViewModel()
     @State private var showingEdit = false
+    @State private var isVisible = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -62,6 +63,7 @@ struct SessionCardView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
 
             // Tab bar
             SessionTabBar(
@@ -122,9 +124,15 @@ struct SessionCardView: View {
             )
         }
         .onAppear {
+            isVisible = true
+            viewModel.resumeRefresh()
             if let dir = viewModel.workDir, !dir.isEmpty {
                 fileVM.loadDirectory(at: dir)
             }
+        }
+        .onDisappear {
+            isVisible = false
+            viewModel.pauseRefresh()
         }
     }
 
@@ -135,26 +143,32 @@ struct SessionCardView: View {
     @ViewBuilder
     private var terminalContent: some View {
         if let command = viewModel.launchCommand {
-            if useMetalRenderer && isMetalAvailable() {
-                MetalTerminalView(
-                    command: command,
-                    workingDirectory: viewModel.workDir,
-                    onProcessExit: { _ in
-                        viewModel.state = .inactive
-                    }
-                )
-                .id(terminalId)
-                .frame(minHeight: 120)
+            if isVisible {
+                // Card is on-screen — live terminal with real PTY
+                if useMetalRenderer && isMetalAvailable() {
+                    MetalTerminalView(
+                        command: command,
+                        workingDirectory: viewModel.workDir,
+                        onProcessExit: { _ in
+                            viewModel.state = .inactive
+                        }
+                    )
+                    .id(terminalId)
+                    .frame(minHeight: 120)
+                } else {
+                    TerminalEmulatorView(
+                        command: command,
+                        workingDirectory: viewModel.workDir,
+                        onProcessExit: { _ in
+                            viewModel.state = .inactive
+                        }
+                    )
+                    .id(terminalId)
+                    .frame(minHeight: 120)
+                }
             } else {
-                TerminalEmulatorView(
-                    command: command,
-                    workingDirectory: viewModel.workDir,
-                    onProcessExit: { _ in
-                        viewModel.state = .inactive
-                    }
-                )
-                .id(terminalId)
-                .frame(minHeight: 120)
+                // Card is off-screen — lightweight preview, no PTY
+                terminalPreview
             }
         } else {
             ScrollView(.vertical) {
@@ -176,6 +190,38 @@ struct SessionCardView: View {
             .background(Color.black)
             .frame(minHeight: 80)
         }
+    }
+
+    /// Lightweight terminal preview — shows last output as static text, no PTY process.
+    private var terminalPreview: some View {
+        ZStack(alignment: .topLeading) {
+            Color.black
+
+            if viewModel.cleanOutput.isEmpty {
+                VStack(spacing: 6) {
+                    Image(systemName: "terminal")
+                        .font(.title2)
+                        .foregroundStyle(.tertiary)
+                    Text(viewModel.name)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                // Show last 20 lines of output as a lightweight snapshot
+                let lines = viewModel.cleanOutput.components(separatedBy: "\n")
+                let snapshot = lines.suffix(20).joined(separator: "\n")
+                ScrollView(.vertical) {
+                    Text(snapshot)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(.green.opacity(0.7))
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(8)
+                        .textSelection(.enabled)
+                }
+            }
+        }
+        .frame(minHeight: 120)
     }
 
     @ViewBuilder
@@ -946,7 +992,7 @@ final class SessionCardViewModel {
         self.launchCommand = session.launchCommand
         self.workDir = session.projectPath
         self.gitBranch = session.gitBranch
-        startRefreshing()
+        // Timer starts only when view becomes visible (resumeRefresh)
     }
 
     init(id: String = UUID().uuidString, name: String = "Session") {
@@ -962,10 +1008,17 @@ final class SessionCardViewModel {
         session?.sendInput(text)
     }
 
-    private func startRefreshing() {
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+    func resumeRefresh() {
+        guard refreshTimer == nil else { return }
+        refresh() // Immediate sync
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.refresh()
         }
+    }
+
+    func pauseRefresh() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
     }
 
     private var lastState: AgentState = .inactive

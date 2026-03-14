@@ -244,7 +244,14 @@ final class AgentSessionAdapter: SessionEditable {
         self.launchCommand = command
         self.startTime = Date()
         self.lastEventTime = Date()
-        self.gitBranch = Self.detectBranch(at: projectPath)
+        // Detect git branch asynchronously to avoid blocking the main thread
+        let path = projectPath
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let branch = Self.detectBranch(at: path)
+            DispatchQueue.main.async {
+                self?.gitBranch = branch
+            }
+        }
     }
 
     func sendInput(_ text: String) {

@@ -72,6 +72,7 @@
 "resources.title" = "Risorse";
 "terminal.waiting" = "In attesa di output...";
 "terminal.no_output" = "Nessun output";
+"terminal.select_to_activate" = "Clicca per attivare il terminale";
 "terminal.no_workdir" = "Nessuna cartella di lavoro impostata";
 "terminal.increase_font" = "Aumenta dimensione testo";
 "terminal.decrease_font" = "Riduci dimensione testo";

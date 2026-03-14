@@ -72,6 +72,7 @@
 "resources.title" = "Ressourcen";
 "terminal.waiting" = "Warte auf Ausgabe...";
 "terminal.no_output" = "Keine Ausgabe";
+"terminal.select_to_activate" = "Klicken, um Terminal zu aktivieren";
 "terminal.no_workdir" = "Kein Arbeitsverzeichnis festgelegt";
 "terminal.increase_font" = "Schriftgröße vergrößern";
 "terminal.decrease_font" = "Schriftgröße verkleinern";

@@ -88,6 +88,7 @@
 // MARK: - Terminal
 "terminal.waiting" = "Waiting for output...";
 "terminal.no_output" = "No output";
+"terminal.select_to_activate" = "Click to activate terminal";
 "terminal.no_workdir" = "No working directory set";
 "terminal.increase_font" = "Increase Font Size";
 "terminal.decrease_font" = "Decrease Font Size";

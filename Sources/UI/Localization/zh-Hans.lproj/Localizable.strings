@@ -82,6 +82,7 @@
 
 "terminal.waiting" = "等待输出...";
 "terminal.no_output" = "无输出";
+"terminal.select_to_activate" = "点击激活终端";
 "terminal.no_workdir" = "未设置工作目录";
 "terminal.increase_font" = "增大字号";
 "terminal.decrease_font" = "减小字号";

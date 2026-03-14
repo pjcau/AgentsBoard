@@ -10,6 +10,7 @@ public final class PTYProcess {
     public let fileDescriptor: Int32
     public let pid: pid_t
     private(set) var isRunning: Bool = true
+    private(set) var isSuspended: Bool = false
 
     // MARK: - Init
 
@@ -97,8 +98,28 @@ public final class PTYProcess {
         ioctl(fileDescriptor, TIOCSWINSZ, &winSize)
     }
 
+    /// Suspends the process (SIGSTOP). The process state is preserved in memory
+    /// but it consumes zero CPU. Resume with `resume()`.
+    func suspend() {
+        guard isRunning, !isSuspended else { return }
+        kill(pid, SIGSTOP)
+        isSuspended = true
+    }
+
+    /// Resumes a previously suspended process (SIGCONT).
+    func resume() {
+        guard isRunning, isSuspended else { return }
+        kill(pid, SIGCONT)
+        isSuspended = false
+    }
+
     func terminate() {
         guard isRunning else { return }
+        // Resume first if suspended, otherwise SIGTERM may not be delivered
+        if isSuspended {
+            kill(pid, SIGCONT)
+            isSuspended = false
+        }
         kill(pid, SIGTERM)
 
         // Give process time to exit gracefully, then force kill
@@ -119,10 +140,12 @@ public final class PTYProcess {
 
     private func cleanup() {
         if isRunning {
+            if isSuspended { kill(pid, SIGCONT) }
             kill(pid, SIGTERM)
         }
         close(fileDescriptor)
         isRunning = false
+        isSuspended = false
     }
 }
 

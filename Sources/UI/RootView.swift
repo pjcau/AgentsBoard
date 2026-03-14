@@ -156,13 +156,12 @@ public struct RootView: View {
             #if DEBUG
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
-                    // Placeholder sessions — no PTY process spawned (empty command)
                     let base = fleet.sessions.count
                     for i in 1...10 {
                         var entry = LaunchEntry()
-                        entry.name = "Debug \(base + i)"
+                        entry.name = "Claude \(base + i)"
                         entry.provider = .claude
-                        entry.command = "" // Empty = no terminal process
+                        entry.command = "claude"
                         onLaunchEntries([entry])
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -240,6 +239,14 @@ public struct RootView: View {
         .overlay {
             if nav.showingCommandPalette {
                 commandPaletteOverlay
+            }
+        }
+        // Clean up cardViewModels when sessions are removed from the fleet
+        .onChange(of: fleet.sessions.count) { _, _ in
+            let activeIds = Set(fleet.sessions.map(\.sessionId))
+            let staleIds = cardViewModels.keys.filter { !activeIds.contains($0) }
+            for id in staleIds {
+                cardViewModels.removeValue(forKey: id)
             }
         }
         // Sync sidebar selection → nav (when user clicks in sidebar)

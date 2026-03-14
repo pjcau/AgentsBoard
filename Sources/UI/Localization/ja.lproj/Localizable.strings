@@ -82,6 +82,7 @@
 
 "terminal.waiting" = "出力を待機中...";
 "terminal.no_output" = "出力なし";
+"terminal.select_to_activate" = "クリックしてターミナルを起動";
 "terminal.no_workdir" = "作業ディレクトリが未設定です";
 "terminal.increase_font" = "フォントサイズを拡大";
 "terminal.decrease_font" = "フォントサイズを縮小";

@@ -140,6 +140,7 @@ public enum L10n {
     public enum Terminal {
         public static var waiting: String { tr("terminal.waiting") }
         public static var noOutput: String { tr("terminal.no_output") }
+        public static var selectToActivate: String { tr("terminal.select_to_activate") }
         public static var noWorkdir: String { tr("terminal.no_workdir") }
         public static var increaseFont: String { tr("terminal.increase_font") }
         public static var decreaseFont: String { tr("terminal.decrease_font") }
