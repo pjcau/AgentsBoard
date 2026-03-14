@@ -90,7 +90,6 @@ private struct LauncherContentView: View {
 
     @State private var entries: [LaunchEntryData] = [LaunchEntryData()]
     @State private var selectedTab: LauncherTab = .manual
-    @State private var showCloneSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -153,7 +152,7 @@ private struct LauncherContentView: View {
             LauncherFooter(entries: $entries, onAdd: {
                 entries.append(LaunchEntryData())
             }, onCloneRepo: {
-                showCloneSheet = true
+                presentClonePanel(entries: $entries)
             }, onLaunch: {
                 let valid = entries.filter { !$0.command.trimmingCharacters(in: .whitespaces).isEmpty }
                 guard !valid.isEmpty else { return }
@@ -168,19 +167,38 @@ private struct LauncherContentView: View {
                 onLaunch(launchEntries)
             })
         }
-        .sheet(isPresented: $showCloneSheet) {
-            CloneRepoSheet(isPresented: $showCloneSheet) { clonedPath in
-                if let repo = detectRepo(at: clonedPath) {
-                    var entry = LaunchEntryData()
-                    entry.name = repo.name
-                    entry.provider = repo.suggestedProvider
-                    entry.command = repo.suggestedProvider.defaultCommand
-                    entry.workDir = repo.path
-                    entries.append(entry)
-                }
-            }
-        }
     }
+
+}
+
+// MARK: - Clone Panel Presenter (uses NSPanel, not .sheet — avoids blocking parent NSWindow)
+
+private func presentClonePanel(entries: Binding<[LaunchEntryData]>) {
+    let panel = NSPanel(
+        contentRect: NSRect(x: 0, y: 0, width: 480, height: 340),
+        styleMask: [.titled, .closable, .utilityWindow],
+        backing: .buffered,
+        defer: false
+    )
+    panel.title = L10n.Launcher.cloneTitle
+    panel.center()
+    panel.isReleasedWhenClosed = false
+
+    weak var weakPanel = panel
+    let entriesBinding = entries
+    let view = CloneRepoSheet(isPresented: .constant(true), onCloned: { clonedPath in
+        if let repo = detectRepo(at: clonedPath) {
+            var entry = LaunchEntryData()
+            entry.name = repo.name
+            entry.provider = repo.suggestedProvider
+            entry.command = repo.suggestedProvider.defaultCommand
+            entry.workDir = repo.path
+            entriesBinding.wrappedValue.append(entry)
+        }
+        weakPanel?.close()
+    })
+    panel.contentView = NSHostingView(rootView: view)
+    panel.makeKeyAndOrderFront(nil)
 }
 
 // MARK: - Clone Repository Sheet
