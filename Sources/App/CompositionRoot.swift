@@ -3,6 +3,7 @@
 // Everything else in the app depends on protocols only.
 
 import Foundation
+import AppKit
 import AgentsBoardCore
 import AgentsBoardUI
 import Observation
@@ -31,6 +32,8 @@ final class CompositionRoot {
     private(set) var commandRegistry: CommandRegistry
     private(set) var activityLogger: ActivityLogger
     private(set) var layoutEngine: LayoutEngine
+    private(set) var statusBarController: StatusBarController?
+    private(set) var menuBarViewModel: MenuBarViewModel?
 
     // MARK: - Navigation State
 
@@ -75,8 +78,25 @@ final class CompositionRoot {
         self.activityLogger = ActivityLogger(persistence: persistence)
         self.layoutEngine = LayoutEngine()
 
+        // Phase 4b: Status bar widget
+        let menuBarVM = MenuBarViewModel(fleetManager: fleetManager)
+        self.menuBarViewModel = menuBarVM
+        let statusBar = StatusBarController(viewModel: menuBarVM)
+        self.statusBarController = statusBar
+
         // Phase 5: Register default commands
         registerDefaultCommands()
+
+        // Phase 6: Setup status bar (after init completes)
+        DispatchQueue.main.async {
+            statusBar.setup()
+            menuBarVM.onNewSession = { [weak self] in
+                self?.navigationState.showingLauncher = true
+            }
+            menuBarVM.onOpenMainWindow = {
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
     }
 
     // MARK: - Session Launch

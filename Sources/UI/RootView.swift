@@ -42,6 +42,8 @@ public final class FleetBridge {
 
 public struct RootView: View {
     private let layoutEngine: LayoutEngine
+    private let fleetManager: any FleetManaging
+    private let recorder: any SessionRecordable
     private let onLaunchEntries: ([LaunchEntry]) -> Void
     private let onRemix: ((UIRemixConfig, any AgentSessionRepresentable) -> Void)?
     @Bindable private var nav: NavigationState
@@ -64,11 +66,14 @@ public struct RootView: View {
         activityLogger: ActivityLogger,
         layoutEngine: LayoutEngine,
         navigationState: NavigationState,
+        recorder: any SessionRecordable,
         taskRouter: TaskRouter? = nil,
         onLaunchEntries: @escaping ([LaunchEntry]) -> Void,
         onRemix: ((UIRemixConfig, any AgentSessionRepresentable) -> Void)? = nil
     ) {
         self.layoutEngine = layoutEngine
+        self.fleetManager = fleetManager
+        self.recorder = recorder
         self.nav = navigationState
         self.onLaunchEntries = onLaunchEntries
         self.onRemix = onRemix
@@ -194,6 +199,9 @@ public struct RootView: View {
             return existing
         }
         let vm = SessionCardViewModel(session: session)
+        let fleet = self.fleetManager
+        let rec = self.recorder
+
         vm.onRemix = { [weak vm] in
             guard let vm else { return }
             remixPresenter.present(
@@ -204,6 +212,60 @@ public struct RootView: View {
                 onRemix?(config, session)
             }
         }
+
+        vm.onKill = { [weak vm] in
+            guard let vm else { return }
+            vm.state = .inactive
+            fleet.unregister(sessionId: vm.sessionId)
+        }
+
+        vm.onRestart = { [weak vm] in
+            guard let vm else { return }
+            let name = vm.name
+            let command = vm.launchCommand ?? ""
+            let workDir = vm.workDir ?? ""
+            // Kill the old session
+            vm.state = .inactive
+            fleet.unregister(sessionId: vm.sessionId)
+            // Re-launch via the composition root callback
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [onLaunchEntries] in
+                var entry = LaunchEntry()
+                entry.name = name
+                entry.command = command
+                entry.workDir = workDir
+                onLaunchEntries([entry])
+            }
+        }
+
+        vm.onRename = { [weak vm] _ in
+            guard let vm else { return }
+            let alert = NSAlert()
+            alert.messageText = "Rename Session"
+            alert.informativeText = "Enter a new name for this session."
+            alert.addButton(withTitle: "Rename")
+            alert.addButton(withTitle: "Cancel")
+            let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+            textField.stringValue = vm.name
+            alert.accessoryView = textField
+            if alert.runModal() == .alertFirstButtonReturn {
+                let newName = textField.stringValue.trimmingCharacters(in: .whitespaces)
+                if !newName.isEmpty {
+                    vm.name = newName
+                }
+            }
+        }
+
+        vm.onToggleRecording = { [weak vm] in
+            guard let vm else { return }
+            if vm.isRecording {
+                _ = try? rec.stopRecording(sessionId: vm.sessionId)
+                vm.isRecording = false
+            } else {
+                try? rec.startRecording(sessionId: vm.sessionId)
+                vm.isRecording = true
+            }
+        }
+
         DispatchQueue.main.async {
             cardViewModels[session.sessionId] = vm
         }
