@@ -26,8 +26,10 @@ public final class FleetManager: FleetManaging {
     private var manualOrder: [String]?
 
     /// - Parameter notificationManager: Injected notification dispatcher.
-    ///   Defaults to `NotificationManager()` in production; inject a mock in tests.
-    public init(notificationManager: any NotificationManaging = NotificationManager()) {
+    ///   Defaults to `NoOpNotificationManager()` so unit tests (which have no
+    ///   UNUserNotificationCenter app bundle) run without crashing.
+    ///   Pass `NotificationManager()` from the composition root for production.
+    public init(notificationManager: any NotificationManaging = NoOpNotificationManager()) {
         self.notificationManager = notificationManager
     }
 

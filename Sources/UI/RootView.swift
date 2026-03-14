@@ -384,6 +384,20 @@ public struct RootView: View {
             }
         }
 
+        vm.onArchive = { [weak vm] in
+            guard let vm else { return }
+            fleet.archiveSession(id: vm.sessionId)
+        }
+
+        let navState = nav
+        vm.onDelete = { [weak vm] in
+            guard let vm else { return }
+            fleet.deleteSession(id: vm.sessionId)
+            if navState.selectedSessionId == vm.sessionId {
+                navState.selectedSessionId = nil
+            }
+        }
+
         DispatchQueue.main.async {
             cardViewModels[session.sessionId] = vm
         }
@@ -455,6 +469,7 @@ public struct RootView: View {
         let bridge = fleet
         let sidebar = sidebarVM
         let cards = cardViewModels
+
         sidebar.onEditSession = { (sessionId: String, data: SessionEditData) in
             guard let session = fm.session(byId: sessionId) else { return }
             if let editable = session as? SessionEditable {
@@ -468,6 +483,27 @@ public struct RootView: View {
                 vm.provider = data.provider
                 if !data.command.isEmpty { vm.launchCommand = data.command }
                 if !data.workDir.isEmpty { vm.workDir = data.workDir }
+            }
+            bridge.refresh()
+            sidebar.refreshSessions()
+        }
+
+        sidebar.onArchiveSession = { sessionId in
+            fm.archiveSession(id: sessionId)
+            sidebar.refreshSessions()
+        }
+
+        sidebar.onUnarchiveSession = { sessionId in
+            fm.unarchiveSession(id: sessionId)
+            sidebar.refreshSessions()
+        }
+
+        let navState = nav
+        sidebar.onDeleteSession = { sessionId in
+            fm.deleteSession(id: sessionId)
+            // If the deleted session was selected, deselect it
+            if navState.selectedSessionId == sessionId {
+                navState.selectedSessionId = nil
             }
             bridge.refresh()
             sidebar.refreshSessions()

@@ -196,3 +196,16 @@ public extension NSNotification.Name {
     /// contains the `String` session identifier to focus in the UI.
     static let agentNotificationTapped = NSNotification.Name("AgentsBoardNotificationTapped")
 }
+
+// MARK: - No-Op Implementation (test-safe default)
+
+/// A notification manager that discards all notifications.
+/// Used as the default value in `FleetManager.init` so that unit tests
+/// (which have no app bundle / UNUserNotificationCenter) do not crash.
+public final class NoOpNotificationManager: NotificationManaging {
+    public init() {}
+    public func notifyNeedsInput(sessionId: String, sessionName: String) {}
+    public func notifyError(sessionId: String, sessionName: String, error: String) {}
+    public func notifyCostThreshold(sessionId: String, cost: Decimal, threshold: Decimal) {}
+    public func notifySessionCompleted(sessionId: String, sessionName: String) {}
+}
