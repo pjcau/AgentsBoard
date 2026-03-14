@@ -65,6 +65,11 @@ struct SessionCardView: View {
                 }
             )
 
+            // Resources panel (collapsible, like AgentHub)
+            if !viewModel.detectedLinks.isEmpty {
+                ResourceLinksPanel(links: viewModel.detectedLinks, provider: viewModel.provider)
+            }
+
             // Footer
             SessionCardFooter(
                 cost: viewModel.cost,
@@ -739,6 +744,117 @@ struct SessionContextMenu: View {
 // MARK: - Detected Link
 
 /// A URL found in terminal output, surfaced for one-click navigation.
+// MARK: - Resource Links Panel (inspired by AgentHub)
+
+struct ResourceLinksPanel: View {
+    let links: [DetectedLink]
+    let provider: AgentProvider?
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Divider()
+
+            // Header — always visible, toggles expand/collapse
+            Button(action: { withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() } }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "link")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+
+                    Text("Resources")
+                        .font(.caption)
+                        .fontWeight(.medium)
+
+                    Text("\(links.count)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Color.secondary.opacity(0.15))
+                        .clipShape(Capsule())
+
+                    Spacer()
+
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                Divider()
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(links) { link in
+                            ResourceLinkChip(link: link)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+        .background(Color.primary.opacity(0.03))
+    }
+}
+
+// MARK: - Resource Link Chip
+
+private struct ResourceLinkChip: View {
+    let link: DetectedLink
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: { NSWorkspace.shared.open(link.url) }) {
+            HStack(spacing: 4) {
+                Image(systemName: iconForURL(link.url))
+                    .font(.caption2)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(link.label)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                    Text(link.url.host ?? "")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(isHovering ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.secondary.opacity(0.15), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .help(link.url.absoluteString)
+    }
+
+    private func iconForURL(_ url: URL) -> String {
+        let host = url.host?.lowercased() ?? ""
+        if host.contains("github.com") { return "curlybraces" }
+        if host.contains("docs.") || host.contains("documentation") { return "doc.text" }
+        if host.contains("stackoverflow.com") { return "questionmark.circle" }
+        if host.contains("npm") || host.contains("pypi") || host.contains("crates.io") { return "shippingbox" }
+        if host.contains("slack") { return "bubble.left.and.bubble.right" }
+        if host.contains("linear") || host.contains("jira") { return "ticket" }
+        return "globe"
+    }
+}
+
+// MARK: - Detected Link
+
 struct DetectedLink: Identifiable, Equatable {
     let id = UUID()
     let url: URL
