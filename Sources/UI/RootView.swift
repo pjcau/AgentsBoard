@@ -356,39 +356,18 @@ public struct RootView: View {
             let needsScroll = sessions.count > 6
 
             if needsScroll {
-                // Scrollable grid for many sessions — cards keep minimum height
-                let columns = columnsForMode(nav.layoutMode, width: geo.size.width)
-                let minCardHeight: CGFloat = 340
-                ScrollViewReader { proxy in
-                    ScrollView(.vertical) {
-                        LazyVGrid(columns: columns, spacing: 8) {
-                            ForEach(sessions, id: \.sessionId) { session in
-                                let vm = viewModel(for: session)
-                                let isSelected = nav.selectedSessionId == session.sessionId
-                                SessionCardView(viewModel: vm)
-                                    .frame(minHeight: minCardHeight)
-                                    .clipped()
-                                    .id(session.sessionId)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .strokeBorder(Color.green, lineWidth: isSelected ? 3 : 0)
-                                    )
-                                    .shadow(color: isSelected ? .green.opacity(0.3) : .clear, radius: 6)
-                                    .onTapGesture {
-                                        nav.selectedSessionId = session.sessionId
-                                        sidebarVM.selectedSessionId = session.sessionId
-                                    }
-                            }
-                        }
-                        .padding(8)
-                    }
-                    .onChange(of: nav.selectedSessionId) { _, newId in
-                        guard let id = newId else { return }
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            proxy.scrollTo(id, anchor: .center)
-                        }
-                    }
-                }
+                // NSCollectionView with real cell reuse — handles 30+ sessions without lag
+                let colCount = columnCountForMode(nav.layoutMode, width: geo.size.width)
+                CollectionGridView(
+                    sessions: sessions,
+                    selectedSessionId: nav.selectedSessionId,
+                    onSelect: { id in
+                        nav.selectedSessionId = id
+                        sidebarVM.selectedSessionId = id
+                    },
+                    viewModelProvider: { session in viewModel(for: session) },
+                    columnCount: colCount
+                )
             } else {
                 // Absolute-positioned layout for <=6 sessions
                 let frames = layoutEngine.computeFrames(
@@ -402,7 +381,7 @@ public struct RootView: View {
                             let frame = frames[index]
                             let vm = viewModel(for: session)
                             let isSelected = nav.selectedSessionId == session.sessionId
-                            SessionCardView(viewModel: vm)
+                            SessionCardView(viewModel: vm, isFocused: isSelected)
                                 .frame(width: frame.rect.width, height: frame.rect.height)
                                 .clipped()
                                 .overlay(
@@ -422,20 +401,13 @@ public struct RootView: View {
         }
     }
 
-    private func columnsForMode(_ mode: LayoutMode, width: CGFloat) -> [GridItem] {
+    private func columnCountForMode(_ mode: LayoutMode, width: CGFloat) -> Int {
         let minWidth: CGFloat = 380
         switch mode {
-        case .single:
-            return [GridItem(.flexible(minimum: minWidth))]
-        case .list:
-            return [GridItem(.flexible(minimum: minWidth))]
-        case .twoColumn:
-            return Array(repeating: GridItem(.flexible(minimum: minWidth), spacing: 8), count: 2)
-        case .threeColumn:
-            return Array(repeating: GridItem(.flexible(minimum: minWidth), spacing: 8), count: 3)
-        case .fleet:
-            let count = max(2, Int(width / minWidth))
-            return Array(repeating: GridItem(.flexible(minimum: minWidth), spacing: 8), count: count)
+        case .single, .list: return 1
+        case .twoColumn: return 2
+        case .threeColumn: return 3
+        case .fleet: return max(2, Int(width / minWidth))
         }
     }
 

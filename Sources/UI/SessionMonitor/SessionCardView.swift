@@ -32,6 +32,7 @@ enum SessionTab: String, CaseIterable {
 
 struct SessionCardView: View {
     let viewModel: SessionCardViewModel
+    var isFocused: Bool = false
     @State private var selectedTab: SessionTab = .terminal
     @State private var terminalId = UUID()
     @State private var fileVM = FileExplorerViewModel()
@@ -125,7 +126,11 @@ struct SessionCardView: View {
         }
         .onAppear {
             isVisible = true
-            viewModel.resumeRefresh()
+            if isFocused {
+                viewModel.resumeRefresh()
+            } else {
+                viewModel.slowRefresh()
+            }
             if let dir = viewModel.workDir, !dir.isEmpty {
                 fileVM.loadDirectory(at: dir)
             }
@@ -133,6 +138,13 @@ struct SessionCardView: View {
         .onDisappear {
             isVisible = false
             viewModel.pauseRefresh()
+        }
+        .onChange(of: isFocused) { _, focused in
+            if focused {
+                viewModel.resumeRefresh()
+            } else {
+                viewModel.slowRefresh()
+            }
         }
     }
 
@@ -143,32 +155,27 @@ struct SessionCardView: View {
     @ViewBuilder
     private var terminalContent: some View {
         if let command = viewModel.launchCommand {
-            if isVisible {
-                // Card is on-screen — live terminal with real PTY
-                if useMetalRenderer && isMetalAvailable() {
-                    MetalTerminalView(
-                        command: command,
-                        workingDirectory: viewModel.workDir,
-                        onProcessExit: { _ in
-                            viewModel.state = .inactive
-                        }
-                    )
-                    .id(terminalId)
-                    .frame(minHeight: 120)
-                } else {
-                    TerminalEmulatorView(
-                        command: command,
-                        workingDirectory: viewModel.workDir,
-                        onProcessExit: { _ in
-                            viewModel.state = .inactive
-                        }
-                    )
-                    .id(terminalId)
-                    .frame(minHeight: 120)
-                }
+            // All cards get a live terminal
+            if useMetalRenderer && isMetalAvailable() {
+                MetalTerminalView(
+                    command: command,
+                    workingDirectory: viewModel.workDir,
+                    onProcessExit: { _ in
+                        viewModel.state = .inactive
+                    }
+                )
+                .id(terminalId)
+                .frame(minHeight: 120)
             } else {
-                // Card is off-screen — lightweight preview, no PTY
-                terminalPreview
+                TerminalEmulatorView(
+                    command: command,
+                    workingDirectory: viewModel.workDir,
+                    onProcessExit: { _ in
+                        viewModel.state = .inactive
+                    }
+                )
+                .id(terminalId)
+                .frame(minHeight: 120)
             }
         } else {
             ScrollView(.vertical) {
@@ -192,36 +199,85 @@ struct SessionCardView: View {
         }
     }
 
-    /// Lightweight terminal preview — shows last output as static text, no PTY process.
+    /// Lightweight terminal preview — shows status badge + last output, no PTY process.
     private var terminalPreview: some View {
-        ZStack(alignment: .topLeading) {
+        ZStack {
             Color.black
 
             if viewModel.cleanOutput.isEmpty {
-                VStack(spacing: 6) {
-                    Image(systemName: "terminal")
-                        .font(.title2)
-                        .foregroundStyle(.tertiary)
+                VStack(spacing: 8) {
+                    stateIcon
                     Text(viewModel.name)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+                    Text("Click to activate terminal")
+                        .font(.caption2)
+                        .foregroundStyle(.quaternary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                // Show last 20 lines of output as a lightweight snapshot
-                let lines = viewModel.cleanOutput.components(separatedBy: "\n")
-                let snapshot = lines.suffix(20).joined(separator: "\n")
-                ScrollView(.vertical) {
+                // Show last lines of output as a lightweight snapshot
+                VStack(spacing: 0) {
+                    let lines = viewModel.cleanOutput.components(separatedBy: "\n")
+                    let snapshot = lines.suffix(15).joined(separator: "\n")
                     Text(snapshot)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(.green.opacity(0.7))
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(.green.opacity(0.6))
                         .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(6)
+                        .lineLimit(15)
+                }
+            }
+
+            // Status overlay badge — always visible
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    statusBadge
                         .padding(8)
-                        .textSelection(.enabled)
                 }
             }
         }
         .frame(minHeight: 120)
+    }
+
+    private var stateIcon: some View {
+        Group {
+            switch viewModel.state {
+            case .working:
+                Image(systemName: "progress.indicator")
+                    .font(.title)
+                    .foregroundStyle(.green)
+                    .symbolEffect(.variableColor.iterative)
+            case .needsInput:
+                Image(systemName: "exclamationmark.bubble.fill")
+                    .font(.title)
+                    .foregroundStyle(.yellow)
+            case .error:
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(.red)
+            case .inactive:
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(.gray)
+            }
+        }
+    }
+
+    private var statusBadge: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(viewModel.borderColor)
+                .frame(width: 6, height: 6)
+            Text(viewModel.state.rawValue)
+                .font(.system(size: 9, weight: .medium))
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule())
     }
 
     @ViewBuilder
@@ -1008,17 +1064,41 @@ final class SessionCardViewModel {
         session?.sendInput(text)
     }
 
+    /// Start fast refresh (1s) for visible/focused cards.
     func resumeRefresh() {
         guard refreshTimer == nil else { return }
-        refresh() // Immediate sync
+        refresh()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.refresh()
+        }
+    }
+
+    /// Switch to slow refresh (5s) — just state updates, no heavy output polling.
+    func slowRefresh() {
+        refreshTimer?.invalidate()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            self?.refreshStateOnly()
         }
     }
 
     func pauseRefresh() {
         refreshTimer?.invalidate()
         refreshTimer = nil
+    }
+
+    private func refreshStateOnly() {
+        guard let session else {
+            refreshTimer?.invalidate()
+            return
+        }
+        let newState = session.state
+        if newState != lastState {
+            addActivity(icon: newState.activityIcon, color: newState.activityColor, detail: newState.rawValue.capitalized)
+            lastState = newState
+        }
+        state = newState
+        cost = Self.formatCost(session.totalCost)
+        duration = Self.formatDuration(since: session.startTime)
     }
 
     private var lastState: AgentState = .inactive
