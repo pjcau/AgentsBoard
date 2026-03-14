@@ -59,7 +59,10 @@ struct SidebarView: View {
                                 onEdit: { data in viewModel.onEditSession?(session.sessionId, data) },
                                 onArchive: { viewModel.onArchiveSession?(session.sessionId) },
                                 onUnarchive: { viewModel.onUnarchiveSession?(session.sessionId) },
-                                onDelete: { viewModel.onDeleteSession?(session.sessionId) }
+                                onDelete: { viewModel.onDeleteSession?(session.sessionId) },
+                                onReorder: { draggedId, targetId, above in
+                                    viewModel.reorderSession(draggedId: draggedId, targetId: targetId, dropAbove: above)
+                                }
                             )
                         }
                     case .byProject:
@@ -84,12 +87,59 @@ struct SidebarSessionRow: View {
     var onArchive: (() -> Void)?
     var onUnarchive: (() -> Void)?
     var onDelete: (() -> Void)?
+    var onReorder: ((_ draggedId: String, _ targetId: String, _ above: Bool) -> Void)?
 
     @State private var showingEdit = false
+    @State private var dropPosition: DropPosition = .none
 
     var body: some View {
         SessionListItem(session: session, isSelected: isSelected)
             .onTapGesture { onSelect() }
+            // Drag source
+            .draggable(session.sessionId) {
+                // Drag preview
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.accentColor)
+                        .frame(width: 8, height: 8)
+                    Text(session.name)
+                        .font(.callout)
+                        .fontWeight(.semibold)
+                }
+                .padding(8)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            // Drop target
+            .dropDestination(for: String.self) { items, location in
+                guard let draggedId = items.first, draggedId != session.sessionId else { return false }
+                onReorder?(draggedId, session.sessionId, dropPosition == .above)
+                dropPosition = .none
+                return true
+            } isTargeted: { targeted in
+                if !targeted { dropPosition = .none }
+            }
+            // Direction indicator based on hover position
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let location):
+                    // Only update when we're in a drag (dropPosition check handled by dropDestination)
+                    dropPosition = location.y < 20 ? .above : .below
+                case .ended:
+                    dropPosition = .none
+                }
+            }
+            // Visual drop indicator
+            .overlay(alignment: .top) {
+                if dropPosition == .above {
+                    DropIndicatorLine()
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if dropPosition == .below {
+                    DropIndicatorLine()
+                }
+            }
             .contextMenu {
                 Button("Edit Session...") {
                     showingEdit = true
@@ -138,6 +188,21 @@ struct SidebarSessionRow: View {
         alert.buttons.first?.hasDestructiveAction = true
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         onDelete?()
+    }
+}
+
+// MARK: - Drop Indicator
+
+private enum DropPosition {
+    case none, above, below
+}
+
+private struct DropIndicatorLine: View {
+    var body: some View {
+        Rectangle()
+            .fill(Color.accentColor)
+            .frame(height: 2)
+            .padding(.horizontal, 4)
     }
 }
 
@@ -302,7 +367,10 @@ struct ProjectTreeItem: View {
                     onEdit: { data in viewModel.onEditSession?(session.sessionId, data) },
                     onArchive: { viewModel.onArchiveSession?(session.sessionId) },
                     onUnarchive: { viewModel.onUnarchiveSession?(session.sessionId) },
-                    onDelete: { viewModel.onDeleteSession?(session.sessionId) }
+                    onDelete: { viewModel.onDeleteSession?(session.sessionId) },
+                    onReorder: { draggedId, targetId, above in
+                        viewModel.reorderSession(draggedId: draggedId, targetId: targetId, dropAbove: above)
+                    }
                 )
                 .padding(.leading, 8)
             }
@@ -382,6 +450,29 @@ final class SidebarViewModel {
 
     deinit {
         refreshTimer?.invalidate()
+    }
+
+    func reorderSession(draggedId: String, targetId: String, dropAbove: Bool) {
+        guard draggedId != targetId else { return }
+        guard let targetIndex = sessionSnapshot.firstIndex(where: { $0.sessionId == targetId }) else { return }
+
+        let insertIndex = dropAbove ? targetIndex : targetIndex + 1
+
+        // Find the target index in the fleet manager's sessions array
+        let fmSessions = fleetManager.sessions
+        guard let fmTargetIdx = fmSessions.firstIndex(where: { $0.sessionId == targetId }) else { return }
+        let fmInsertIdx = dropAbove ? fmTargetIdx : min(fmTargetIdx + 1, fmSessions.count - 1)
+
+        fleetManager.reorder(sessionId: draggedId, toIndex: fmInsertIdx)
+
+        // Also reorder local snapshot immediately for responsive UI
+        if let fromIndex = sessionSnapshot.firstIndex(where: { $0.sessionId == draggedId }) {
+            var snapshot = sessionSnapshot
+            let item = snapshot.remove(at: fromIndex)
+            let adjustedInsert = min(insertIndex > fromIndex ? insertIndex - 1 : insertIndex, snapshot.count)
+            snapshot.insert(item, at: adjustedInsert)
+            sessionSnapshot = snapshot
+        }
     }
 
     func refreshSessions() {
