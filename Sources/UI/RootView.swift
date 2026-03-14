@@ -353,9 +353,11 @@ public struct RootView: View {
     private var sessionGrid: some View {
         GeometryReader { geo in
             let sessions = fleet.sessions
-            let needsScroll = sessions.count > 6
 
-            if needsScroll {
+            if nav.layoutMode == .single {
+                // Single/Focus mode — show only the selected session fullscreen
+                singleSessionView(sessions: sessions, size: geo.size)
+            } else if sessions.count > 6 {
                 // NSCollectionView with real cell reuse — handles 30+ sessions without lag
                 let colCount = columnCountForMode(nav.layoutMode, width: geo.size.width)
                 CollectionGridView(
@@ -398,6 +400,75 @@ public struct RootView: View {
                     }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func singleSessionView(sessions: [any AgentSessionRepresentable], size: CGSize) -> some View {
+        let selected = sessions.first { $0.sessionId == nav.selectedSessionId } ?? sessions.first
+        if let session = selected {
+            let vm = viewModel(for: session)
+            VStack(spacing: 0) {
+                // Navigation arrows for prev/next
+                HStack {
+                    Button {
+                        navigateSession(sessions: sessions, direction: -1)
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                    .keyboardShortcut("[", modifiers: .command)
+
+                    Spacer()
+
+                    Text("\(vm.name)")
+                        .font(.callout)
+                        .fontWeight(.medium)
+
+                    if let idx = sessions.firstIndex(where: { $0.sessionId == session.sessionId }) {
+                        Text("\(idx + 1)/\(sessions.count)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        navigateSession(sessions: sessions, direction: 1)
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                    .keyboardShortcut("]", modifiers: .command)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(.ultraThinMaterial)
+
+                Divider()
+
+                SessionCardView(viewModel: vm, isFocused: true)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        } else {
+            Text("No session selected")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private func navigateSession(sessions: [any AgentSessionRepresentable], direction: Int) {
+        guard let currentId = nav.selectedSessionId,
+              let idx = sessions.firstIndex(where: { $0.sessionId == currentId }) else {
+            nav.selectedSessionId = sessions.first?.sessionId
+            return
+        }
+        let newIdx = idx + direction
+        if newIdx >= 0 && newIdx < sessions.count {
+            nav.selectedSessionId = sessions[newIdx].sessionId
+            sidebarVM.selectedSessionId = sessions[newIdx].sessionId
         }
     }
 
