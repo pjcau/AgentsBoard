@@ -9,13 +9,22 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Search field + New Session button
+            // Search field + Show Archived toggle + New Session button
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
                 TextField("Search sessions...", text: $viewModel.searchText)
                     .textFieldStyle(.plain)
                 Spacer()
+                Button {
+                    viewModel.showArchived.toggle()
+                } label: {
+                    Image(systemName: viewModel.showArchived ? "archivebox.fill" : "archivebox")
+                        .font(.body)
+                        .foregroundStyle(viewModel.showArchived ? Color.accentColor : Color.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help(viewModel.showArchived ? "Hide Archived Sessions" : "Show Archived Sessions")
                 Button(action: { onNewSession?() }) {
                     Image(systemName: "plus")
                         .font(.body)
@@ -47,7 +56,10 @@ struct SidebarView: View {
                                 session: session,
                                 isSelected: viewModel.selectedSessionId == session.sessionId,
                                 onSelect: { viewModel.selectedSessionId = session.sessionId },
-                                onEdit: { data in viewModel.onEditSession?(session.sessionId, data) }
+                                onEdit: { data in viewModel.onEditSession?(session.sessionId, data) },
+                                onArchive: { viewModel.onArchiveSession?(session.sessionId) },
+                                onUnarchive: { viewModel.onUnarchiveSession?(session.sessionId) },
+                                onDelete: { viewModel.onDeleteSession?(session.sessionId) }
                             )
                         }
                     case .byProject:
@@ -69,6 +81,9 @@ struct SidebarSessionRow: View {
     let isSelected: Bool
     let onSelect: () -> Void
     let onEdit: (SessionEditData) -> Void
+    var onArchive: (() -> Void)?
+    var onUnarchive: (() -> Void)?
+    var onDelete: (() -> Void)?
 
     @State private var showingEdit = false
 
@@ -78,6 +93,19 @@ struct SidebarSessionRow: View {
             .contextMenu {
                 Button("Edit Session...") {
                     showingEdit = true
+                }
+                Divider()
+                if session.isArchived {
+                    Button("Unarchive Session") {
+                        onUnarchive?()
+                    }
+                } else {
+                    Button("Archive Session") {
+                        onArchive?()
+                    }
+                }
+                Button("Delete Session...", role: .destructive) {
+                    confirmDelete()
                 }
                 Divider()
                 Button("Copy Session ID") {
@@ -97,6 +125,20 @@ struct SidebarSessionRow: View {
                 )
             }
     }
+
+    // MARK: - Delete Confirmation
+
+    private func confirmDelete() {
+        let alert = NSAlert()
+        alert.messageText = "Delete \"\(session.name)\"?"
+        alert.informativeText = "The session will be removed from AgentsBoard. Files on disk are not affected."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
+        alert.buttons.first?.hasDestructiveAction = true
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        onDelete?()
+    }
 }
 
 // MARK: - Session List Item
@@ -107,7 +149,7 @@ struct SessionListItem: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Row 1: State dot + Name + State badge
+            // Row 1: State dot + Name + Archive badge or State badge
             HStack(spacing: 6) {
                 Circle()
                     .fill(stateColor(session.state))
@@ -121,13 +163,24 @@ struct SessionListItem: View {
 
                 Spacer()
 
-                Text(session.state.rawValue)
-                    .font(.system(size: 9, weight: .medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(stateColor(session.state).opacity(0.15))
-                    .foregroundStyle(stateColor(session.state))
-                    .clipShape(Capsule())
+                if session.isArchived {
+                    Label("Archived", systemImage: "archivebox")
+                        .font(.system(size: 9, weight: .medium))
+                        .labelStyle(.iconOnly)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.secondary.opacity(0.15))
+                        .foregroundStyle(.secondary)
+                        .clipShape(Capsule())
+                } else {
+                    Text(session.state.rawValue)
+                        .font(.system(size: 9, weight: .medium))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(stateColor(session.state).opacity(0.15))
+                        .foregroundStyle(stateColor(session.state))
+                        .clipShape(Capsule())
+                }
             }
 
             // Row 2: Provider pill
@@ -183,6 +236,8 @@ struct SessionListItem: View {
         }
         .padding(10)
         .background(isSelected ? Color.accentColor.opacity(0.12) : Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        // Dim archived sessions so they are visually distinct
+        .opacity(session.isArchived ? 0.5 : 1.0)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
@@ -244,7 +299,10 @@ struct ProjectTreeItem: View {
                     session: session,
                     isSelected: viewModel.selectedSessionId == session.sessionId,
                     onSelect: { viewModel.selectedSessionId = session.sessionId },
-                    onEdit: { data in viewModel.onEditSession?(session.sessionId, data) }
+                    onEdit: { data in viewModel.onEditSession?(session.sessionId, data) },
+                    onArchive: { viewModel.onArchiveSession?(session.sessionId) },
+                    onUnarchive: { viewModel.onUnarchiveSession?(session.sessionId) },
+                    onDelete: { viewModel.onDeleteSession?(session.sessionId) }
                 )
                 .padding(.leading, 8)
             }
@@ -283,6 +341,7 @@ struct SidebarSessionInfo {
     let startTime: Date
     let gitBranch: String?
     let projectPath: String?
+    let isArchived: Bool
 }
 
 struct ProjectGroup {
@@ -297,9 +356,17 @@ final class SidebarViewModel {
     var viewMode: SidebarViewMode = .all
     var selectedSessionId: String?
     var sessionSnapshot: [SidebarSessionInfo] = []
+    /// When true, archived sessions are shown (dimmed) alongside active sessions.
+    var showArchived: Bool = false
 
     /// Called when the user edits a session from the sidebar. (sessionId, editData)
     var onEditSession: ((String, SessionEditData) -> Void)?
+    /// Called when the user requests to archive a session. (sessionId)
+    var onArchiveSession: ((String) -> Void)?
+    /// Called when the user requests to unarchive a session. (sessionId)
+    var onUnarchiveSession: ((String) -> Void)?
+    /// Called when the user confirms deletion of a session. (sessionId)
+    var onDeleteSession: ((String) -> Void)?
 
     private let fleetManager: any FleetManaging
     private var refreshTimer: Timer?
@@ -327,17 +394,22 @@ final class SidebarViewModel {
                 state: session.state,
                 startTime: session.startTime,
                 gitBranch: session.gitBranch,
-                projectPath: session.projectPath
+                projectPath: session.projectPath,
+                isArchived: session.isArchived
             )
         }
     }
 
     var filteredSessions: [SidebarSessionInfo] {
-        let sessions = sessionSnapshot
+        // Step 1: apply archive visibility filter
+        let visibleSessions = showArchived
+            ? sessionSnapshot
+            : sessionSnapshot.filter { !$0.isArchived }
 
-        if searchText.isEmpty { return sessions }
+        // Step 2: apply text search
+        guard !searchText.isEmpty else { return visibleSessions }
         let query = searchText.lowercased()
-        return sessions.filter {
+        return visibleSessions.filter {
             $0.name.lowercased().contains(query) ||
             ($0.modelName?.lowercased().contains(query) ?? false) ||
             ($0.provider?.rawValue.lowercased().contains(query) ?? false) ||
@@ -346,7 +418,6 @@ final class SidebarViewModel {
     }
 
     var projectGroups: [ProjectGroup] {
-        let byProject = Dictionary(grouping: filteredSessions) { $0.sessionId }
         // Simplified — real impl uses ProjectManager to group
         return [ProjectGroup(name: "Default", sessions: filteredSessions)]
     }

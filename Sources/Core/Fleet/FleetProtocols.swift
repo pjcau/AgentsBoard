@@ -4,12 +4,30 @@ import Foundation
 
 /// Aggregates agent sessions cross-project, sorts by priority, provides fleet stats.
 public protocol FleetManaging: AnyObject {
+    /// All registered sessions (including archived).
     var sessions: [any AgentSessionRepresentable] { get }
+
+    /// Non-archived sessions only. Views should use this for the main list.
+    var activeSessions: [any AgentSessionRepresentable] { get }
+
     var stats: FleetStats { get }
 
     func register(_ session: any AgentSessionRepresentable)
     func unregister(sessionId: String)
     func session(byId id: String) -> (any AgentSessionRepresentable)?
+
+    /// Move a session to the given zero-based index in the current sessions array.
+    /// After calling this, the new order is reflected in `sessions`.
+    func reorder(sessionId: String, toIndex: Int)
+
+    /// Hide a session from the active view while keeping it in memory.
+    func archiveSession(id: String)
+
+    /// Restore a previously archived session to the active view.
+    func unarchiveSession(id: String)
+
+    /// Remove a session entirely: unregisters it and fires fleet change.
+    func deleteSession(id: String)
 
     var onFleetChange: (() -> Void)? { get set }
 }
@@ -27,6 +45,8 @@ public protocol AgentSessionRepresentable: AnyObject {
     var launchCommand: String? { get }
     var sessionName: String { get }
     var gitBranch: String? { get }
+    /// Whether the session is archived (hidden from the active view).
+    var isArchived: Bool { get set }
     func sendInput(_ text: String)
 }
 
@@ -45,6 +65,9 @@ extension AgentSessionRepresentable {
     public var gitBranch: String? { nil }
     public func sendInput(_ text: String) {}
 }
+
+// NOTE: `isArchived` has no default in the protocol extension because it is a
+// stored property requirement — each conformer must declare `var isArchived: Bool`.
 
 /// Aggregated statistics for the fleet.
 public struct FleetStats: Sendable {

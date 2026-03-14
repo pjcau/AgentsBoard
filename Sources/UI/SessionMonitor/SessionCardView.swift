@@ -89,7 +89,9 @@ struct SessionCardView: View {
                 onKill: viewModel.onKill,
                 onRestart: viewModel.onRestart,
                 onToggleRecording: viewModel.onToggleRecording,
-                isRecording: viewModel.isRecording
+                isRecording: viewModel.isRecording,
+                onArchive: viewModel.onArchive,
+                onDelete: viewModel.onDelete
             )
         }
         .sheet(isPresented: $showingEdit) {
@@ -261,6 +263,32 @@ struct SessionInfoContent: View {
                     Label("Project", systemImage: "folder")
                         .font(.caption)
                         .fontWeight(.semibold)
+                }
+
+                // Links section — only shown when URLs are present in output
+                if !viewModel.detectedLinks.isEmpty {
+                    GroupBox {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(viewModel.detectedLinks) { link in
+                                Button {
+                                    NSWorkspace.shared.open(link.url)
+                                } label: {
+                                    Text(link.label)
+                                        .font(.system(.caption, design: .monospaced))
+                                        .foregroundStyle(.blue)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.borderless)
+                                .help(link.url.absoluteString)
+                            }
+                        }
+                    } label: {
+                        Label("Links", systemImage: "link")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                    }
                 }
             }
             .padding(10)
@@ -654,6 +682,8 @@ struct SessionContextMenu: View {
     var onRestart: (() -> Void)?
     var onToggleRecording: (() -> Void)?
     var isRecording: Bool = false
+    var onArchive: (() -> Void)?
+    var onDelete: (() -> Void)?
 
     var body: some View {
         Button("Edit Session...") {
@@ -677,10 +707,45 @@ struct SessionContextMenu: View {
             onToggleRecording?()
         }
         Divider()
+        Button("Archive Session") {
+            onArchive?()
+        }
+        Button("Delete Session...", role: .destructive) {
+            confirmDelete()
+        }
+        Divider()
         Button("Copy Session ID") {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(sessionId, forType: .string)
         }
+    }
+
+    // MARK: - Delete Confirmation
+
+    private func confirmDelete() {
+        let alert = NSAlert()
+        alert.messageText = "Delete \"\(sessionName)\"?"
+        alert.informativeText = "The session will be removed from AgentsBoard. Files on disk are not affected."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
+        alert.buttons.first?.hasDestructiveAction = true
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        onDelete?()
+    }
+}
+
+// MARK: - Detected Link
+
+/// A URL found in terminal output, surfaced for one-click navigation.
+struct DetectedLink: Identifiable, Equatable {
+    let id = UUID()
+    let url: URL
+    let label: String
+
+    static func == (lhs: DetectedLink, rhs: DetectedLink) -> Bool {
+        lhs.url == rhs.url
     }
 }
 
@@ -701,6 +766,7 @@ final class SessionCardViewModel {
     var workDir: String?
     var gitBranch: String?
     var activityEntries: [SessionActivityEntry] = []
+    var detectedLinks: [DetectedLink] = []
     var onRemix: (() -> Void)?
     var onKill: (() -> Void)?
     var onRestart: (() -> Void)?
@@ -708,6 +774,8 @@ final class SessionCardViewModel {
     var onEdit: ((SessionEditData) -> Void)?
     var onToggleRecording: (() -> Void)?
     var isRecording: Bool = false
+    var onArchive: (() -> Void)?
+    var onDelete: (() -> Void)?
 
     /// Output with ANSI escape codes stripped for display
     var cleanOutput: String {
@@ -778,6 +846,7 @@ final class SessionCardViewModel {
         duration = Self.formatDuration(since: session.startTime)
         lastOutput = session.outputText
         gitBranch = session.gitBranch
+        detectedLinks = Self.extractLinks(from: lastOutput)
     }
 
     func addActivity(icon: String, color: Color, detail: String) {
@@ -848,6 +917,32 @@ final class SessionCardViewModel {
         }
 
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Scans `text` for http/https URLs and returns deduplicated DetectedLinks.
+    /// Uses NSRegularExpression so no third-party dependency is needed.
+    private static func extractLinks(from text: String) -> [DetectedLink] {
+        guard !text.isEmpty,
+              let regex = try? NSRegularExpression(pattern: #"https?://[^\s<>"']+"#)
+        else { return [] }
+
+        let range = NSRange(text.startIndex..., in: text)
+        let matches = regex.matches(in: text, range: range)
+
+        var seen = Set<URL>()
+        var links: [DetectedLink] = []
+
+        for match in matches {
+            guard let swiftRange = Range(match.range, in: text) else { continue }
+            let rawString = String(text[swiftRange])
+            // Trim trailing punctuation that is unlikely to be part of the URL
+            let trimmed = rawString.trimmingCharacters(in: CharacterSet(charactersIn: ".,;:)]}\"'"))
+            guard let url = URL(string: trimmed), !seen.contains(url) else { continue }
+            seen.insert(url)
+            links.append(DetectedLink(url: url, label: trimmed))
+        }
+
+        return links
     }
 
     private static func formatCost(_ cost: Decimal) -> String {

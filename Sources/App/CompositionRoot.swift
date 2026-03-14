@@ -16,6 +16,7 @@ final class CompositionRoot {
     private(set) var configProvider: any ConfigProviding
     private(set) var themeProvider: any ThemeProviding
     private(set) var persistence: any PersistenceProviding
+    private(set) var notificationManager: any NotificationManaging
     private(set) var fleetManager: any FleetManaging
     private(set) var costAggregator: any CostAggregating
     private(set) var projectManager: any ProjectManaging
@@ -61,7 +62,10 @@ final class CompositionRoot {
         let projectManager = ProjectManagerStub(persistence: persistence)
         self.projectManager = projectManager
 
-        let fleetManager = FleetManager()
+        let notificationManager = NotificationManager()
+        self.notificationManager = notificationManager
+
+        let fleetManager = FleetManager(notificationManager: notificationManager)
         self.fleetManager = fleetManager
 
         self.hookEventParser = HookEventParserStub()
@@ -222,6 +226,7 @@ final class AgentSessionAdapter: SessionEditable {
     var launchCommand: String?
     var sessionName: String
     var gitBranch: String?
+    var isArchived: Bool = false
 
     init(terminal: TerminalSession, name: String, projectPath: String?, command: String?) {
         self.sessionId = terminal.sessionId

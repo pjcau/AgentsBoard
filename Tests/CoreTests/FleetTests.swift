@@ -14,6 +14,7 @@ private final class MockSession: AgentSessionRepresentable {
     var projectPath: String?
     var startTime: Date
     var lastEventTime: Date?
+    var isArchived: Bool = false
 
     init(
         sessionId: String,

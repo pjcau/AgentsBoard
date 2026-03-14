@@ -16,6 +16,7 @@ public final class AgentSession: AgentSessionRepresentable, TerminalDataReceivin
     public let projectPath: String?
     public let startTime: Date
     public private(set) var lastEventTime: Date?
+    public var isArchived: Bool = false
 
     // MARK: - Internal Components
 

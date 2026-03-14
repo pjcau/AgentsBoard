@@ -8,12 +8,25 @@ import SwiftUI
 import SwiftTerm
 import AgentsBoardCore
 
+// MARK: - Font Size Constants
+
+/// Shared constants for terminal font size, used by both the view and the menu commands.
+public enum TerminalFontSize {
+    public static let defaultSize: Double = 13
+    public static let minimum: Double = 8
+    public static let maximum: Double = 28
+    public static let step: Double = 1
+    public static let appStorageKey = "terminalFontSize"
+}
+
 /// SwiftUI wrapper for SwiftTerm's LocalProcessTerminalView.
 /// Launches a process in a PTY and renders full terminal output.
 struct TerminalEmulatorView: NSViewRepresentable {
     let command: String
     let workingDirectory: String?
     let onProcessExit: ((Int32?) -> Void)?
+
+    @AppStorage(TerminalFontSize.appStorageKey) private var fontSize: Double = TerminalFontSize.defaultSize
 
     func makeNSView(context: Context) -> LocalProcessTerminalView {
         let termView = LocalProcessTerminalView(frame: .zero)
@@ -22,6 +35,11 @@ struct TerminalEmulatorView: NSViewRepresentable {
         // Configure terminal appearance
         termView.nativeBackgroundColor = .black
         termView.nativeForegroundColor = .green
+
+        // Apply the persisted font size on creation
+        if let monoFont = NSFont.userFixedPitchFont(ofSize: fontSize) {
+            termView.font = monoFont
+        }
 
         // Use a login shell so it loads the user's full PATH (~/.zshrc, ~/.zprofile, etc.)
         let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
@@ -47,7 +65,11 @@ struct TerminalEmulatorView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {
-        // No dynamic updates needed — the terminal manages itself
+        // Re-apply font when fontSize AppStorage value changes
+        guard let monoFont = NSFont.userFixedPitchFont(ofSize: fontSize),
+              nsView.font.pointSize != monoFont.pointSize
+        else { return }
+        nsView.font = monoFont
     }
 
     func makeCoordinator() -> Coordinator {
