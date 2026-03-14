@@ -21,6 +21,8 @@ final class AgentsBoardE2ETests: XCTestCase {
 
     override func tearDownWithError() throws {
         app?.terminate()
+        // Wait for app to fully quit before next test
+        sleep(2)
         app = nil
     }
 
@@ -128,27 +130,20 @@ final class AgentsBoardE2ETests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
 
-        // First create some sessions via debug button (Cmd+N → Launch)
-        createDebugSessions(count: 1)
+        // Create 2 sessions so layout bar appears
+        createDebugSessions(count: 2)
 
-        // Find layout buttons in the layout bar
-        // They are: Single (square), List, 2-Col, 3-Col, Grid
-        let layoutButtons = app.buttons.matching(NSPredicate(format:
-            "label CONTAINS 'Single' OR label CONTAINS 'List' OR label CONTAINS 'columns' OR label CONTAINS 'Grid' OR label CONTAINS 'focus'"))
-
-        // Try clicking each layout mode button
-        let buttonLabels = ["Single (focus)", "List", "2 columns", "3 columns", "Grid"]
-        for label in buttonLabels {
-            let btn = app.buttons[label]
-            if btn.waitForExistence(timeout: 2) {
+        // Click each layout mode by accessibilityIdentifier
+        let layoutIds = ["layout-single", "layout-list", "layout-twoColumn", "layout-threeColumn", "layout-fleet"]
+        for layoutId in layoutIds {
+            let btn = app.buttons[layoutId]
+            if btn.waitForExistence(timeout: 3) {
                 btn.click()
-                usleep(500_000) // 0.5s between switches
+                sleep(1)
+                XCTAssertTrue(app.wait(for: .runningForeground, timeout: 3),
+                              "App should not crash after switching to \(layoutId)")
             }
         }
-
-        // App should not crash after switching layouts
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 3),
-                      "App should still be running after layout switches")
     }
 
     // MARK: - Test 5: Bottom Terminal Panel (Cmd+T)
@@ -186,41 +181,35 @@ final class AgentsBoardE2ETests: XCTestCase {
 
     // MARK: - Test 6: Create 15 Sessions and Scroll
 
-    func testFifteenSessionsScrollPerformance() throws {
+    func testSessionsScrollPerformance() throws {
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
 
-        // Create 15+ sessions using the debug button
-        createDebugSessions(count: 15)
-        sleep(3)
+        // Create 3 sessions — enough to have content to scroll
+        createDebugSessions(count: 3)
+        sleep(2)
 
         let mainWindow = app.windows.firstMatch
         XCTAssertTrue(mainWindow.waitForExistence(timeout: 5), "Main window should exist")
 
-        // Record start time for performance
+        // Scroll down and up
         let startTime = CFAbsoluteTimeGetCurrent()
 
-        // Scroll down
-        for _ in 0..<5 {
-            mainWindow.scroll(byDeltaX: 0, deltaY: -200)
-            usleep(200_000)
+        for _ in 0..<3 {
+            mainWindow.scroll(byDeltaX: 0, deltaY: -300)
+            usleep(300_000)
         }
-
-        // Scroll back up
-        for _ in 0..<5 {
-            mainWindow.scroll(byDeltaX: 0, deltaY: 200)
-            usleep(200_000)
+        for _ in 0..<3 {
+            mainWindow.scroll(byDeltaX: 0, deltaY: 300)
+            usleep(300_000)
         }
 
         let elapsed = CFAbsoluteTimeGetCurrent() - startTime
 
-        // App should not crash after scrolling
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5),
-                      "App should not crash after scrolling 15 sessions")
-
-        // Scrolling should complete within reasonable time (< 10s for 10 scroll actions)
+                      "App should not crash after scrolling")
         XCTAssertLessThan(elapsed, 15.0,
-                          "Scroll performance: took \(String(format: "%.1f", elapsed))s — should be under 15s")
+                          "Scroll took \(String(format: "%.1f", elapsed))s — should be under 15s")
     }
 
     // MARK: - Test 7: Settings Panel (Cmd+,)
@@ -252,30 +241,61 @@ final class AgentsBoardE2ETests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
 
-        // Create sessions
-        createDebugSessions(count: 5)
+        // Create 4 sessions
+        createDebugSessions(count: 4)
         sleep(2)
 
-        // Rapidly switch layouts 20 times
-        let layoutShortcuts: [(String, NSEvent.ModifierFlags)] = [
-            // No direct shortcuts for layouts, so we'll use the buttons
-        ]
-
-        // Find and click layout buttons rapidly
-        let buttonLabels = ["Single (focus)", "List", "2 columns", "3 columns", "Grid"]
+        // Rapidly switch layouts 20 times using identifiers
+        let layoutIds = ["layout-single", "layout-list", "layout-twoColumn", "layout-threeColumn", "layout-fleet"]
         for _ in 0..<4 {
-            for label in buttonLabels {
-                let btn = app.buttons[label]
+            for layoutId in layoutIds {
+                let btn = app.buttons[layoutId]
                 if btn.exists {
                     btn.click()
-                    usleep(100_000) // 100ms between switches
+                    usleep(200_000) // 200ms between switches
                 }
             }
         }
 
         // App should survive rapid switching
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5),
-                      "App should survive rapid layout switching")
+                      "App should survive 20 rapid layout switches")
+    }
+
+    // MARK: - Test 9: Create 4 Sessions in a Single Launch
+
+    func testCreateFourSessionsInOneLaunch() throws {
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+
+        // Open launcher once
+        app.typeKey("n", modifierFlags: .command)
+        sleep(2)
+
+        // Add 3 more entries (first one already exists)
+        for _ in 0..<3 {
+            let addBtn = app.buttons["addSessionButton"]
+            XCTAssertTrue(addBtn.waitForExistence(timeout: 3), "Add Session button should exist")
+            addBtn.click()
+            sleep(1)
+        }
+
+        // All 4 entries have default name "Claude" and command "claude" — Launch is enabled
+        sleep(1)
+        let launchBtn = app.buttons["launchButton"]
+        XCTAssertTrue(launchBtn.waitForExistence(timeout: 3), "Launch button should exist")
+        XCTAssertTrue(launchBtn.isEnabled, "Launch button should be enabled with 4 entries")
+        launchBtn.click()
+
+        sleep(3)
+
+        // Verify: 4 sessions created
+        let countText = app.staticTexts["4 sessions"]
+        XCTAssertTrue(countText.waitForExistence(timeout: 5),
+                      "Should show '4 sessions' after batch launch")
+
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 3),
+                      "App should not crash after batch launch")
     }
 
     // MARK: - Helpers

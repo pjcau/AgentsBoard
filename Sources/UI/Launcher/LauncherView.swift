@@ -426,6 +426,7 @@ private struct LauncherFooter: View {
                 Label(L10n.Launcher.addSession, systemImage: "plus")
             }
             .buttonStyle(.borderless)
+            .accessibilityIdentifier("addSessionButton")
 
             Button(action: onCloneRepo) {
                 Label(L10n.Launcher.cloneButton, systemImage: "arrow.down.circle")
@@ -465,6 +466,7 @@ private struct LaunchEntryRow: View {
                 LabeledContent("Name") {
                     TextField("Session name", text: $entry.name)
                         .textFieldStyle(.roundedBorder)
+                        .accessibilityIdentifier("sessionName-\(entry.id)")
                 }
                 LabeledContent("Provider") {
                     Picker("", selection: $entry.provider) {

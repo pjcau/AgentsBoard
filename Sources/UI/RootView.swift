@@ -323,6 +323,7 @@ public struct RootView: View {
         }
         .buttonStyle(.borderless)
         .foregroundStyle(nav.layoutMode == mode ? .primary : .secondary)
+        .accessibilityIdentifier("layout-\(mode.rawValue)")
         .help(help)
     }
 
