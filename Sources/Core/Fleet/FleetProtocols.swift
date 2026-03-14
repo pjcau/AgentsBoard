@@ -25,12 +25,16 @@ public protocol AgentSessionRepresentable: AnyObject {
     var lastEventTime: Date? { get }
     var outputText: String { get }
     var launchCommand: String? { get }
+    var sessionName: String { get }
+    var gitBranch: String? { get }
     func sendInput(_ text: String)
 }
 
 extension AgentSessionRepresentable {
     public var outputText: String { "" }
     public var launchCommand: String? { nil }
+    public var sessionName: String { "Session" }
+    public var gitBranch: String? { nil }
     public func sendInput(_ text: String) {}
 }
 

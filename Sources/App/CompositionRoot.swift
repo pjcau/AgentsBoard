@@ -151,17 +151,41 @@ final class AgentSessionAdapter: AgentSessionRepresentable {
     var lastEventTime: Date?
     var outputText: String = ""
     var launchCommand: String?
+    let sessionName: String
+    var gitBranch: String?
 
     init(terminal: TerminalSession, name: String, projectPath: String?, command: String?) {
         self.sessionId = terminal.sessionId
+        self.sessionName = name.isEmpty ? "Session" : name
         self.projectPath = projectPath
         self.launchCommand = command
         self.startTime = Date()
         self.lastEventTime = Date()
+        self.gitBranch = Self.detectBranch(at: projectPath)
     }
 
     func sendInput(_ text: String) {
         // Input is handled directly by SwiftTerm's TerminalView
+    }
+
+    private static func detectBranch(at path: String?) -> String? {
+        guard let path, !path.isEmpty else { return nil }
+        let process = Process()
+        let pipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        process.arguments = ["rev-parse", "--abbrev-ref", "HEAD"]
+        process.currentDirectoryURL = URL(fileURLWithPath: path)
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            process.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let branch = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return (branch?.isEmpty ?? true) ? nil : branch
+        } catch {
+            return nil
+        }
     }
 }
 
