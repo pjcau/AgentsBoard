@@ -1,7 +1,7 @@
 # Performance Report — AgentsBoard
 
 **Date**: 2026-03-14
-**Benchmark suite**: `Tests/CoreTests/PerformanceBenchmarks.swift` (29 tests, 10 suites)
+**Benchmark suite**: `Tests/CoreTests/PerformanceBenchmarks.swift` (29 perf tests, 10 suites; total project: 224 tests, 83 suites)
 **Platform**: macOS 14+ (arm64), Swift 5.10, Metal GPU Framework
 
 ---

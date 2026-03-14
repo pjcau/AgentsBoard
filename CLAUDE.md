@@ -209,20 +209,28 @@ This project is designed to be built by Claude with specialized sub-agents. Each
 - **Smart Mode**: TaskRouter classifies task descriptions and suggests the best provider/model with confidence scores. Learns from user overrides.
 - **Session Remix**: Fork a session into an isolated git worktree with context transfer (summary, last N actions, or full transcript). Launches a new agent in the worktree automatically.
 - **Status bar native**: Real NSStatusItem in the macOS status bar showing fleet cost with per-provider breakdown, always visible.
-- **Localization-ready**: All user-facing strings go through L10n for future multi-language support.
+- **Localized**: All user-facing strings go through `L10n` enum. Shipped in 7 languages: English, Italian, French, German, Spanish, Japanese, Simplified Chinese. Auto-detects device locale, falls back to English.
 - **Bottom terminal**: Slide-up terminal panel (Cmd+T) at 1/4 height for quick shell access without leaving the app.
+- **Session lifecycle**: Sessions can be archived (hidden but preserved), deleted (with confirmation), and reordered (Move Up/Down from context menu). Auto-scroll to selected session in scrollable grid.
+- **Push notifications**: macOS native notifications via `UserNotifications` when an agent enters `.needsInput` or `.error` state. 30-second cooldown per session.
+- **Font size shortcuts**: Cmd+= / Cmd+- / Cmd+0 to increase/decrease/reset terminal font size (8-28pt, persisted via @AppStorage).
+- **Resource links**: URLs detected in terminal output are shown in a collapsible Resources panel at the bottom of each session card, with context-aware icons (GitHub, docs, StackOverflow, npm, etc.).
+- **Clone & Launch**: Session launcher can clone a Git repository from URL (HTTPS or SSH) into a chosen directory, then auto-create a session with detected provider and repo name.
 
 ## Commands
 
 ```bash
-# Build
+# Build (debug — includes #if DEBUG features)
 swift build
 
-# Run tests
+# Build (production — excludes debug toolbar, optimized)
+swift build -c release
+
+# Run tests (224 tests across 83 suites)
 swift test
 
-# Build DMG
-bash scripts/bundle.sh
+# Build .app bundle and launch
+bash build.sh && open build/AgentsBoard.app
 
 # Run CLI tool
 swift run agentsctl
