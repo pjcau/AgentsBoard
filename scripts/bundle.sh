@@ -78,14 +78,21 @@ PLIST
 
 echo "App bundle created at ${APP_DIR}"
 
-# 4. Code signing (if identity available)
+# 4. Code signing
 if [ -n "$TEAM_ID" ]; then
-    echo "Signing..."
+    # Full Developer ID signing
+    echo "Signing with Developer ID..."
     codesign --force --deep --sign "$SIGNING_IDENTITY" \
         --options runtime \
         --entitlements Entitlements.plist \
         "$APP_DIR"
-    echo "Signed successfully"
+    echo "Signed with Developer ID"
+else
+    # Ad-hoc signing — changes Gatekeeper error from "damaged" to "unidentified developer"
+    # Users can then approve via System Settings → Open Anyway
+    echo "Ad-hoc signing..."
+    codesign --force --deep --sign - "$APP_DIR"
+    echo "Ad-hoc signed (users approve via System Settings → Open Anyway)"
 fi
 
 # 5. Notarization (if credentials available)
