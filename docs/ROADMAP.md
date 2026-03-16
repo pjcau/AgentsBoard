@@ -715,16 +715,14 @@ Obiettivo: drag-and-drop, cross-agent context, performance optimization, packagi
 
 #### Step 20.1 — `build-pipeline`
 **Agent**: `macos-core`
-**Descrizione**: Implementare il pipeline di build completo per distribuzione. Include: build con code signing (Developer ID Application), notarization con Apple, packaging come .dmg con sfondo custom e link a /Applications, Homebrew cask formula per `brew install --cask agentsboard`, Sparkle framework per auto-update con EdDSA verification. Il pipeline deve essere scriptabile e riproducibile. Include: versioning semantico, changelog generation da commit convenzionali, GitHub Release creation con asset upload.
+**Descrizione**: Implementare il pipeline di build completo per distribuzione. Include: build con code signing (ad-hoc), Homebrew cask formula per `brew install --cask agentsboard`, Sparkle framework per auto-update con EdDSA verification. Il pipeline deve essere scriptabile e riproducibile. Include: versioning semantico, changelog generation da commit convenzionali, GitHub Release creation con asset upload.
 
 **Deliverables**:
-- `scripts/bundle.sh`: Build, sign, notarize, crea .app bundle.
-- `scripts/build-dmg.sh`: Crea .dmg da .app con layout custom.
-- `scripts/release.sh`: Tag version, genera changelog, crea GitHub Release, upload .dmg.
-- `Casks/agentsboard.rb`: Homebrew cask formula.
+- `build.sh`: Build, sign, crea .app bundle.
+- `Casks/agentsboard.rb`: Homebrew cask formula (distribuzione .zip).
 - Sparkle integration per auto-update.
-- `docs/RELEASING.md`: Documentazione del processo di release.
-- Test: Build pipeline gira senza errori. DMG si monta e app si avvia.
+- `CHANGELOG.md`: Release notes per ogni versione.
+- Test: Build pipeline gira senza errori. App si avvia dopo `brew install`.
 
 ---
 

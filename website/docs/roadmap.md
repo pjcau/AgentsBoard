@@ -60,17 +60,31 @@ sidebar_position: 21
 ### Sprint 17-20: Polish
 - [x] Drag & drop file attachments
 - [x] Context bridge with knowledge graph
-- [x] 180 unit tests across 70 suites
-- [x] Build scripts (bundle, DMG, release)
-- [x] Homebrew cask formula
+- [x] 229 unit tests across 84 suites
+- [x] Build scripts and Homebrew cask formula
 - [x] Docusaurus documentation
 
-## Future (v0.2+)
+### Sprint 21-24: v0.7.0 Features
+- [x] 7-language localization (EN, IT, FR, DE, ES, JA, ZH)
+- [x] Session editing (name, provider, command, workdir, branch)
+- [x] Activity & Info tabs on session cards
+- [x] Resource link detection panel
+- [x] Clone & Launch from Git URL
+- [x] Session archive, delete, reorder
+- [x] Push notifications for needs-input/error
+- [x] Font size shortcuts (Cmd+=/Cmd+-/Cmd+0)
+- [x] Bottom terminal panel (Cmd+T)
+- [x] Appearance mode (Light/Dark/Auto)
+- [x] Auto-scroll to selected session
+- [x] Metal renderer pipeline (runtime shader compilation)
+- [x] TerminalCell compaction (32 -> 16 bytes)
+- [x] 29 performance benchmarks
 
-- [ ] Real Metal rendering integration
+## Future
+
+- [ ] Lazy Terminal (SIGSTOP/SIGCONT for inactive sessions)
 - [ ] Live agent provider implementations
 - [ ] Collaborative multi-user sessions
 - [ ] Plugin system for custom providers
-- [ ] Notification center integration
 - [ ] Sparkle auto-update
 - [ ] App Store distribution

@@ -106,20 +106,16 @@ Running multiple AI coding agents is the new normal. But today's tools force you
 
 ## Install
 
-### Download
-Get the latest `.dmg` from [Releases](../../releases).
-
-### Homebrew
 ```bash
 brew tap pjcau/agentsboard
 brew install --cask agentsboard
 ```
 
-### Build from Source
+To build from source instead:
 ```bash
 git clone https://github.com/pjcau/AgentsBoard.git
 cd AgentsBoard
-./build.sh
+bash build.sh && open build/AgentsBoard.app
 ```
 
 ## Project Configuration

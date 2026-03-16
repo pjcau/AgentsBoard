@@ -4,7 +4,7 @@ cask "agentsboard" do
   version "0.7.0"
   sha256 :no_check # Updated after release artifact is uploaded
 
-  url "https://github.com/pjcau/AgentsBoard/releases/download/v#{version}/AgentsBoard-#{version}.dmg"
+  url "https://github.com/pjcau/AgentsBoard/releases/download/v#{version}/AgentsBoard-#{version}.zip"
   name "AgentsBoard"
   desc "Fleet management dashboard for AI coding agents"
   homepage "https://github.com/pjcau/AgentsBoard"

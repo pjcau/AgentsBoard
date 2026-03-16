@@ -29,9 +29,10 @@ cp .build/debug/agentsctl /usr/local/bin/
 agentsctl --help
 ```
 
-## Homebrew (Coming Soon)
+## Homebrew
 
 ```bash
+brew tap pjcau/agentsboard
 brew install --cask agentsboard
 ```
 
@@ -39,10 +40,7 @@ brew install --cask agentsboard
 
 ```bash
 # Build, sign, and create the .app bundle
-./Scripts/bundle.sh
-
-# Create a DMG installer
-./Scripts/build-dmg.sh
+bash build.sh && open build/AgentsBoard.app
 ```
 
 ## Dependencies
@@ -65,8 +63,8 @@ AgentsBoard/
 │   ├── UI/           # SwiftUI + AppKit views
 │   └── CLI/          # agentsctl command-line tool
 ├── Tests/
-│   ├── CoreTests/    # 150+ unit tests
+│   ├── CoreTests/    # 229 unit tests
 │   └── UITests/      # View model tests
-├── Scripts/          # Build, CI, release scripts
+├── Casks/            # Homebrew cask formula
 └── website/          # This documentation (Docusaurus)
 ```

@@ -2,6 +2,8 @@
 
 ## v0.7.0 (2026-03-16)
 
+Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`
+
 ### New Features
 - **Localization**: 7 languages — English, Italian, French, German, Spanish, Japanese, Simplified Chinese. Auto-detects device locale with English fallback. 148 localized strings across all UI.
 - **Session editing**: Edit session name, provider, command, working directory, and git branch from both the session card header (pencil icon) and sidebar context menu.
@@ -41,7 +43,6 @@
 
 ### Features
 - Ad-hoc code signing for Gatekeeper bypass
-- .pkg installer that bypasses Gatekeeper quarantine
 - E2E test improvements: batch launch, layout identifiers, scroll tests
 
 ---
