@@ -52,8 +52,6 @@ cat > "${CONTENTS}/Info.plist" << PLIST
     <string>${BUNDLE_ID}</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
-    <key>CFBundleIconFile</key>
-    <string>AppIcon</string>
     <key>CFBundleName</key>
     <string>AgentsBoard</string>
     <key>CFBundlePackageType</key>
