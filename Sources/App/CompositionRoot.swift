@@ -36,6 +36,10 @@ final class CompositionRoot {
     private(set) var statusBarController: StatusBarController?
     private(set) var menuBarViewModel: MenuBarViewModel?
 
+    // MARK: - Embedded Server
+
+    private(set) var embeddedServer: EmbeddedServerController?
+
     // MARK: - Navigation State
 
     let navigationState = NavigationState()
@@ -87,6 +91,15 @@ final class CompositionRoot {
         self.menuBarViewModel = menuBarVM
         let statusBar = StatusBarController(viewModel: menuBarVM)
         self.statusBarController = statusBar
+
+        // Phase 4c: Embedded HTTP server (disabled by default, toggle in Settings)
+        self.embeddedServer = EmbeddedServerController(
+            fleetManager: fleetManager,
+            costAggregator: costAggregator,
+            activityLogger: self.activityLogger,
+            themeEngine: ThemeEngine(),
+            configProvider: configProvider
+        )
 
         // Phase 5: Register default commands
         registerDefaultCommands()

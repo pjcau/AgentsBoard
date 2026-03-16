@@ -1,0 +1,8 @@
+.build/
+build/
+.git/
+*.app
+*.pkg
+*.dmg
+web/node_modules/
+tauri/target/

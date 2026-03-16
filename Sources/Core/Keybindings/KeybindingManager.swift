@@ -1,14 +1,23 @@
 // MARK: - Keybinding Manager (Step 7.2)
 // Centralized keyboard shortcut management with conflict detection.
 
-import AppKit
+import Foundation
 import Observation
+
+#if canImport(AppKit)
+import AppKit
 
 public protocol KeybindingManaging: AnyObject {
     func register(_ binding: KeyBinding)
     func handle(event: NSEvent) -> Bool
     var allBindings: [KeyBinding] { get }
 }
+#else
+public protocol KeybindingManaging: AnyObject {
+    func register(_ binding: KeyBinding)
+    var allBindings: [KeyBinding] { get }
+}
+#endif
 
 @Observable
 public final class KeybindingManager: KeybindingManaging {
@@ -21,6 +30,7 @@ public final class KeybindingManager: KeybindingManaging {
         bindings[binding.combination] = binding
     }
 
+    #if canImport(AppKit)
     public func handle(event: NSEvent) -> Bool {
         let combo = KeyCombination(
             keyCode: event.keyCode,
@@ -30,6 +40,7 @@ public final class KeybindingManager: KeybindingManaging {
         binding.action()
         return true
     }
+    #endif
 
     public var allBindings: [KeyBinding] {
         Array(bindings.values)

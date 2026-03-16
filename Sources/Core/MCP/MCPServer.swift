@@ -51,7 +51,7 @@ public struct AnyCodable: Codable {
         else if let bool = try? container.decode(Bool.self) { value = bool }
         else if let dict = try? container.decode([String: AnyCodable].self) { value = dict }
         else if let arr = try? container.decode([AnyCodable].self) { value = arr }
-        else { value = NSNull() }
+        else { value = Optional<Any>.none as Any }
     }
 
     public func encode(to encoder: Encoder) throws {

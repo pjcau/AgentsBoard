@@ -3,6 +3,7 @@
 
 import Foundation
 
+@available(*, deprecated, message: "Use AgentsBoardServer HTTP API instead. Will be removed in v0.9.0.")
 public final class ControlServer {
 
     private let socketPath: String

@@ -1,5 +1,5 @@
-// MARK: - AgentsCtl CLI (Step 13.2)
-// Command-line tool to control a running AgentsBoard instance.
+// MARK: - AgentsCtl CLI (v0.8.0)
+// Command-line tool to control a running AgentsBoard instance via HTTP API.
 
 import Foundation
 
@@ -12,46 +12,63 @@ struct AgentsCtl {
             return
         }
 
-        let socketPath = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("AgentsBoard/agentsctl.sock").path
-
-        let client = ControlClient(socketPath: socketPath)
+        // Parse --host and --port flags
+        let flags = parseFlags(Array(args))
+        let host = flags["host"] ?? "localhost"
+        let port = flags["port"] ?? "19850"
+        let baseURL = "http://\(host):\(port)"
+        let client = HTTPClient(baseURL: baseURL)
 
         switch command {
         case "list":
-            let params = parseFlags(Array(args.dropFirst()))
-            client.send(method: "tools/call", params: [
-                "name": "list_sessions",
-                "arguments": params
-            ])
-        case "status":
-            client.send(method: "tools/call", params: [
-                "name": "get_fleet_stats"
-            ])
+            let stateFilter = flags["state"]
+            let providerFilter = flags["provider"]
+            var url = "/api/v1/sessions"
+            var queryParts: [String] = []
+            if let s = stateFilter { queryParts.append("state=\(s)") }
+            if let p = providerFilter { queryParts.append("provider=\(p)") }
+            if !queryParts.isEmpty { url += "?" + queryParts.joined(separator: "&") }
+            client.get(url)
+
+        case "status", "stats":
+            client.get("/api/v1/fleet/stats")
+
         case "states":
-            client.send(method: "tools/call", params: [
-                "name": "get_agent_states"
-            ])
+            client.get("/api/v1/sessions")
+
         case "send":
-            let remaining = Array(args.dropFirst())
-            guard remaining.count >= 2 else {
+            let remaining = Array(args.dropFirst()).filter { !$0.hasPrefix("--") }
+            // Remove command name and flags
+            let positional = remaining.dropFirst() // drop "send"
+            guard positional.count >= 2 else {
                 print("Usage: agentsctl send <session-id> \"text\"")
                 return
             }
-            client.send(method: "tools/call", params: [
-                "name": "send_input",
-                "arguments": ["sessionId": remaining[0], "text": remaining[1]]
-            ])
+            let sessionId = Array(positional)[0]
+            let text = Array(positional)[1]
+            client.post("/api/v1/sessions/\(sessionId)/input", body: ["text": text])
+
         case "log":
-            let params = parseFlags(Array(args.dropFirst()))
-            client.send(method: "tools/call", params: [
-                "name": "get_activity_log",
-                "arguments": params
-            ])
+            var url = "/api/v1/activity"
+            var queryParts: [String] = []
+            if let limit = flags["limit"] { queryParts.append("limit=\(limit)") }
+            if let session = flags["session"] { queryParts.append("session=\(session)") }
+            if !queryParts.isEmpty { url += "?" + queryParts.joined(separator: "&") }
+            client.get(url)
+
         case "cost":
-            client.send(method: "tools/call", params: [
-                "name": "get_fleet_stats"
-            ])
+            if let session = flags["session"] {
+                client.get("/api/v1/costs/session/\(session)")
+            } else {
+                client.get("/api/v1/costs")
+            }
+
+        case "config":
+            client.get("/api/v1/config")
+
+        case "themes":
+            client.get("/api/v1/themes")
+
         default:
             print("Unknown command: \(command)")
             printUsage()
@@ -63,20 +80,21 @@ struct AgentsCtl {
         agentsctl — Control AgentsBoard from the command line
 
         USAGE:
-          agentsctl list [--state <state>] [--provider <provider>]
-          agentsctl status
-          agentsctl states
-          agentsctl send <session-id> "text"
-          agentsctl log [--limit <n>] [--session <id>]
-          agentsctl cost
+          agentsctl <command> [--host <host>] [--port <port>]
 
         COMMANDS:
-          list      List all sessions with status
+          list      List all sessions [--state <state>] [--provider <provider>]
           status    Show fleet overview statistics
           states    Show current state of all agents
-          send      Send text input to a session
-          log       Show activity log
-          cost      Show cost information
+          send      Send text input: send <session-id> "text"
+          log       Show activity log [--limit <n>] [--session <id>]
+          cost      Show cost information [--session <id>]
+          config    Show current configuration
+          themes    List available themes
+
+        OPTIONS:
+          --host    Server hostname (default: localhost)
+          --port    Server port (default: 19850)
         """)
     }
 
@@ -96,81 +114,77 @@ struct AgentsCtl {
     }
 }
 
-// MARK: - Control Client
+// MARK: - HTTP Client
 
-final class ControlClient {
-    private let socketPath: String
+final class HTTPClient {
+    private let baseURL: String
 
-    init(socketPath: String) {
-        self.socketPath = socketPath
+    init(baseURL: String) {
+        self.baseURL = baseURL
     }
 
-    func send(method: String, params: [String: Any]) {
-        let clientSocket = socket(AF_UNIX, SOCK_STREAM, 0)
-        guard clientSocket >= 0 else {
-            print("Error: Cannot create socket")
-            return
-        }
-        defer { close(clientSocket) }
-
-        var addr = sockaddr_un()
-        addr.sun_family = sa_family_t(AF_UNIX)
-        let pathBytes = socketPath.utf8CString
-        withUnsafeMutablePointer(to: &addr.sun_path) { ptr in
-            ptr.withMemoryRebound(to: CChar.self, capacity: 104) { dest in
-                pathBytes.withUnsafeBufferPointer { src in
-                    let count = min(src.count, 104)
-                    dest.update(from: src.baseAddress!, count: count)
-                }
-            }
-        }
-
-        let connectResult = withUnsafePointer(to: &addr) { ptr in
-            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockPtr in
-                connect(clientSocket, sockPtr, socklen_t(MemoryLayout<sockaddr_un>.size))
-            }
-        }
-
-        guard connectResult == 0 else {
-            print("Error: Cannot connect to AgentsBoard. Is it running?")
-            return
-        }
-
-        let request: [String: Any] = [
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": method,
-            "params": params
-        ]
-
-        guard let data = try? JSONSerialization.data(withJSONObject: request),
-              let json = String(data: data, encoding: .utf8) else {
-            print("Error: Cannot serialize request")
-            return
-        }
-
-        _ = json.withCString { ptr in
-            write(clientSocket, ptr, json.count)
-        }
-
-        var buffer = [UInt8](repeating: 0, count: 65536)
-        let bytesRead = read(clientSocket, &buffer, buffer.count)
-        if bytesRead > 0 {
-            let responseData = Data(buffer[..<bytesRead])
-            if let response = String(data: responseData, encoding: .utf8) {
-                prettyPrint(response)
-            }
-        }
+    func get(_ path: String) {
+        request(method: "GET", path: path)
     }
 
-    private func prettyPrint(_ json: String) {
-        guard let data = json.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: data),
-              let pretty = try? JSONSerialization.data(withJSONObject: obj, options: .prettyPrinted),
-              let str = String(data: pretty, encoding: .utf8) else {
-            print(json)
+    func post(_ path: String, body: [String: Any]) {
+        request(method: "POST", path: path, body: body)
+    }
+
+    private func request(method: String, path: String, body: [String: Any]? = nil) {
+        guard let url = URL(string: baseURL + path) else {
+            print("Error: Invalid URL")
             return
         }
-        print(str)
+
+        var req = URLRequest(url: url)
+        req.httpMethod = method
+        req.timeoutInterval = 10
+
+        if let body {
+            req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+
+        let semaphore = DispatchSemaphore(value: 0)
+
+        let task = URLSession.shared.dataTask(with: req) { data, response, error in
+            defer { semaphore.signal() }
+
+            if let error {
+                print("Error: \(error.localizedDescription)")
+                print("Is AgentsBoard running with the HTTP server enabled?")
+                return
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("Error: No response")
+                return
+            }
+
+            guard let data else {
+                print("Error: No data (HTTP \(httpResponse.statusCode))")
+                return
+            }
+
+            if httpResponse.statusCode >= 400 {
+                print("Error (HTTP \(httpResponse.statusCode)):")
+            }
+
+            Self.prettyPrint(data)
+        }
+
+        task.resume()
+        semaphore.wait()
+    }
+
+    private static func prettyPrint(_ data: Data) {
+        if let obj = try? JSONSerialization.jsonObject(with: data),
+           let pretty = try? JSONSerialization.data(withJSONObject: obj, options: .prettyPrinted),
+           let str = String(data: pretty, encoding: .utf8) {
+            print(str)
+        } else if let str = String(data: data, encoding: .utf8) {
+            print(str)
+        }
     }
 }

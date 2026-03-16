@@ -1,6 +1,8 @@
 // MARK: - Glyph Atlas (Step 2.2)
 // Pre-renders all font glyphs into a shared Metal texture atlas.
 
+#if canImport(Metal)
+
 import Foundation
 import Metal
 import CoreText
@@ -126,3 +128,5 @@ final class GlyphAtlas {
         self.texture = tex
     }
 }
+
+#endif

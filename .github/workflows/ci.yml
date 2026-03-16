@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # macOS — Full build (app + server + CLI + tests)
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build all targets
+        run: swift build
+      - name: Run tests
+        run: swift test
+      - name: Build .app bundle
+        run: bash build.sh
+
+  # Linux — Core + Server only (no UI)
+  linux:
+    runs-on: ubuntu-24.04
+    container: swift:5.10-noble
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: apt-get update && apt-get install -y libsqlite3-dev
+      - name: Build Core + Server
+        run: swift build --target AgentsBoardCore --target AgentsBoardServer
+      - name: Run Core tests
+        run: swift test --filter AgentsBoardCoreTests
+
+  # Web frontend
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+  # Tauri (Linux build)
+  tauri-linux:
+    runs-on: ubuntu-24.04
+    needs: [web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install web deps
+        run: cd web && npm ci
+      - name: Install Tauri dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Tauri
+        run: cd tauri && cargo build
+
+  # Tauri (Windows build)
+  tauri-windows:
+    runs-on: windows-latest
+    needs: [web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install web deps
+        run: cd web && npm ci
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Tauri
+        run: cd tauri && cargo build

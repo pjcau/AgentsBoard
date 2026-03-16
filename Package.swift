@@ -2,6 +2,18 @@
 
 import PackageDescription
 
+// MARK: - Platform-conditional dependencies
+
+#if os(macOS)
+let swiftTermDependency: [Package.Dependency] = [
+    .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", from: "1.2.0"),
+]
+let swiftTermTarget: [Target.Dependency] = ["SwiftTerm"]
+#else
+let swiftTermDependency: [Package.Dependency] = []
+let swiftTermTarget: [Target.Dependency] = []
+#endif
+
 let package = Package(
     name: "AgentsBoard",
     defaultLocalization: "en",
@@ -11,14 +23,17 @@ let package = Package(
     products: [
         .executable(name: "AgentsBoard", targets: ["AgentsBoard"]),
         .executable(name: "agentsctl", targets: ["AgentsBoardCLI"]),
+        .executable(name: "AgentsBoardServer", targets: ["AgentsBoardServer"]),
+        .library(name: "AgentsBoardCore", targets: ["AgentsBoardCore"]),
     ],
-    dependencies: [
-        .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", from: "1.2.0"),
+    dependencies: swiftTermDependency + [
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.0"),
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "6.24.0"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.0.0"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird-websocket.git", from: "2.0.0"),
     ],
     targets: [
-        // Main app
+        // Main macOS app
         .executableTarget(
             name: "AgentsBoard",
             dependencies: [
@@ -31,11 +46,10 @@ let package = Package(
             ]
         ),
 
-        // Core domain logic — zero UI dependencies
+        // Core domain logic — zero UI dependencies, cross-platform
         .target(
             name: "AgentsBoardCore",
-            dependencies: [
-                "SwiftTerm",
+            dependencies: swiftTermTarget + [
                 "Yams",
                 .product(name: "GRDB", package: "GRDB.swift"),
             ],
@@ -43,17 +57,27 @@ let package = Package(
             exclude: ["Rendering/Shaders.metal"]
         ),
 
-        // UI layer — SwiftUI + AppKit
+        // UI layer — SwiftUI + AppKit (macOS only)
         .target(
             name: "AgentsBoardUI",
             dependencies: [
                 "AgentsBoardCore",
-                "SwiftTerm",
-            ],
+            ] + swiftTermTarget,
             path: "Sources/UI",
             resources: [
                 .process("Localization"),
             ]
+        ),
+
+        // HTTP + WebSocket API server (cross-platform)
+        .executableTarget(
+            name: "AgentsBoardServer",
+            dependencies: [
+                "AgentsBoardCore",
+                .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "HummingbirdWebSocket", package: "hummingbird-websocket"),
+            ],
+            path: "Sources/Server"
         ),
 
         // CLI control tool
@@ -75,6 +99,14 @@ let package = Package(
             name: "AgentsBoardUITests",
             dependencies: ["AgentsBoardUI"],
             path: "Tests/UITests"
+        ),
+        .testTarget(
+            name: "AgentsBoardServerTests",
+            dependencies: [
+                "AgentsBoardServer",
+                "AgentsBoardCore",
+            ],
+            path: "Tests/ServerTests"
         ),
     ]
 )

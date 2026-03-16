@@ -2,6 +2,8 @@
 // Wraps SwiftTerm behind protocol for DIP. Converts byte stream → terminal grid.
 
 import Foundation
+
+#if canImport(SwiftTerm)
 import SwiftTerm
 
 final class VTParser {
@@ -76,3 +78,44 @@ final class VTParser {
         )
     }
 }
+
+#else
+
+// MARK: - VTParser Stub (non-macOS platforms without SwiftTerm)
+
+final class VTParserStub {
+
+    private(set) var columns: Int
+    private(set) var rows: Int
+
+    init(columns: Int = 80, rows: Int = 24) {
+        self.columns = columns
+        self.rows = rows
+    }
+
+    func feed(_ data: Data) {}
+
+    func resize(columns: Int, rows: Int) {
+        self.columns = columns
+        self.rows = rows
+    }
+
+    func snapshot() -> TerminalGridSnapshot {
+        let cells = [TerminalCell](
+            repeating: TerminalCell(
+                character: " ",
+                foreground: .default,
+                background: .default,
+                attributes: CellAttributes()
+            ),
+            count: columns * rows
+        )
+        return TerminalGridSnapshot(columns: columns, rows: rows, cells: cells)
+    }
+
+    func cursorPosition() -> CursorPosition {
+        CursorPosition(column: 0, row: 0, isVisible: true)
+    }
+}
+
+#endif

@@ -1,6 +1,8 @@
 // MARK: - Metal Renderer (Step 2.2)
 // Single MTKView renderer for all terminal viewports via viewport scissoring.
 
+#if canImport(Metal)
+
 import Foundation
 import Metal
 import MetalKit
@@ -383,3 +385,16 @@ public final class MetalRenderer: NSObject, TerminalRenderable, MTKViewDelegate 
     }
     """
 }
+
+#else
+
+// MARK: - NullRenderer (non-macOS platforms)
+
+public final class NullRenderer: TerminalRenderable {
+    public init() {}
+    public func render(viewports: [TerminalViewportData]) {}
+    public func updateGlyphAtlas(fontFamily: String, fontSize: CGFloat) {}
+    public func invalidate() {}
+}
+
+#endif

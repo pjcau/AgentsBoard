@@ -1,8 +1,12 @@
 // MARK: - Theme Engine (Step 8.1)
 // Hot-reloadable theme system with ANSI-256 + TrueColor support.
 
-import AppKit
+import Foundation
 import Observation
+
+#if canImport(AppKit)
+import AppKit
+#endif
 
 /// Full terminal theme definition.
 public struct TerminalTheme: Codable, Sendable {
@@ -79,9 +83,11 @@ public struct ThemeColor: Codable, Sendable, Equatable {
         self.a = 1.0
     }
 
+    #if canImport(AppKit)
     public var nsColor: NSColor {
         NSColor(red: r, green: g, blue: b, alpha: a)
     }
+    #endif
 
     public var simd4: SIMD4<Float> {
         SIMD4(Float(r), Float(g), Float(b), Float(a))

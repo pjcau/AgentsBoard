@@ -1,6 +1,9 @@
 // MARK: - Key Binding Models (Step 7.2)
 
+import Foundation
+#if canImport(AppKit)
 import AppKit
+#endif
 
 /// Modifier flags for key bindings.
 public struct KeyModifiers: OptionSet, Hashable, Codable, Sendable {
@@ -15,6 +18,7 @@ public struct KeyModifiers: OptionSet, Hashable, Codable, Sendable {
     public static let option   = KeyModifiers(rawValue: 1 << 2)
     public static let control  = KeyModifiers(rawValue: 1 << 3)
 
+    #if canImport(AppKit)
     public var nsEventFlags: NSEvent.ModifierFlags {
         var flags = NSEvent.ModifierFlags()
         if contains(.command)  { flags.insert(.command) }
@@ -32,6 +36,7 @@ public struct KeyModifiers: OptionSet, Hashable, Codable, Sendable {
         if flags.contains(.control)  { m.insert(.control) }
         return m
     }
+    #endif
 }
 
 /// A key combination (e.g., Cmd+K).

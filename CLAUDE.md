@@ -104,11 +104,33 @@ Sources/
 │   │                 # Protocol: SessionRecordable
 │   ├── Rendering/    # Metal renderer, glyph atlas, viewport scissoring
 │   │                 # Protocol: TerminalRenderable
+│   │                 # Platform: #if canImport(Metal), NullRenderer on Linux
 │   ├── Terminal/     # PTY management, VT parsing, session lifecycle
 │   │                 # Protocol: TerminalSessionManaging
+│   │                 # Platform: #if canImport(SwiftTerm), VTParserStub on Linux
 │   └── Theme/        # Theme engine, built-in themes, hot-reload
 │                     # ThemeEngine, TerminalTheme, BuiltInTheme
-├── UI/               # All SwiftUI views and AppKit bridges
+│                     # Platform: nsColor guarded behind #if canImport(AppKit)
+├── Server/           # HTTP + WebSocket API server (cross-platform)
+│   ├── ServerMain.swift          # @main, Hummingbird entry point
+│   ├── ServerCompositionRoot.swift # Headless DI (no UI, NoOpNotifications)
+│   ├── APIServer.swift           # Route registration, app configuration
+│   ├── Middleware/
+│   │   └── LocalhostGuard.swift  # Rejects non-localhost connections
+│   ├── Routes/                   # REST API handlers
+│   │   ├── SessionRoutes.swift   # /api/v1/sessions
+│   │   ├── FleetRoutes.swift     # /api/v1/fleet/stats
+│   │   ├── ActivityRoutes.swift  # /api/v1/activity
+│   │   ├── CostRoutes.swift      # /api/v1/costs
+│   │   ├── ConfigRoutes.swift    # /api/v1/config, /api/v1/themes
+│   │   └── TerminalRoutes.swift  # /api/v1/sessions/:id/output
+│   └── WebSocket/                # Real-time event broadcasting
+│       ├── EventBroker.swift     # Actor managing subscriptions
+│       ├── EventTypes.swift      # WSEvent, AnyCodableValue
+│       ├── FleetEventAdapter.swift
+│       ├── ActivityEventAdapter.swift
+│       └── CostEventAdapter.swift
+├── UI/               # All SwiftUI views and AppKit bridges (macOS only)
 │   ├── SessionMonitor/   # Session cards, SwiftTerm terminal, RemixSheet
 │   ├── FleetOverview/    # Cross-project agent dashboard
 │   ├── ActivityLog/      # Structured timeline of agent actions
@@ -133,7 +155,13 @@ Sources/
 │   ├── VimMode/          # Vim-style command mode
 │   ├── Simulator/        # iOS Simulator integration
 │   └── DiagramRenderer/  # Generic diagram rendering
-└── CLI/              # agentsctl command-line control tool
+├── CLI/              # agentsctl command-line control tool (HTTP client)
+├── web/              # React + TypeScript + Vite web frontend
+│   ├── src/api/      # Typed HTTP client + WebSocket
+│   ├── src/hooks/    # React hooks (useFleetStats, useSessions, useWebSocket)
+│   └── src/components/ # FleetOverview, SessionList, Terminal, ActivityLog, CostDashboard
+└── tauri/            # Tauri desktop app (Linux + Windows)
+    └── src/          # Rust: sidecar server management, system tray, IPC
 ```
 
 ## Agent System — How to Work on This Project
@@ -184,10 +212,43 @@ This project is designed to be built by Claude with specialized sub-agents. Each
 - Themes: YAML-based, hot-reload from ~/Library/Application Support/AgentsBoard/themes/
 - All keyboard shortcuts must be configurable
 
+#### 4. `server-api` — HTTP/WebSocket Server Agent
+**Domain**: Hummingbird HTTP server, REST routes, WebSocket event broker, server composition root, localhost security
+**Files**: `Sources/Server/`
+**Skills needed**: Swift, Hummingbird 2.0, async/await, JSON-RPC, WebSocket
+**SOLID focus**: SRP — each route file handles one resource. DIP — routes depend on Core protocols, not concrete types. OCP — new routes added without modifying APIServer.
+**Rules**:
+- Server listens on `localhost:19850` only (LocalhostGuard middleware)
+- All routes are pure functions of Core protocol instances
+- DTOs map Core types to JSON — never expose Core types directly
+- WebSocket channels: `fleet`, `session:{id}`, `activity`, `costs`
+- EventBroker is an actor for thread safety
+- ServerCompositionRoot mirrors App/CompositionRoot but headless (no UI, NoOpNotifications)
+
+#### 5. `web-frontend` — Web UI Agent
+**Domain**: React components, TypeScript API client, WebSocket hooks, xterm.js terminal
+**Files**: `web/`
+**Skills needed**: React 18, TypeScript, Vite, xterm.js, CSS
+**Rules**:
+- All types mirror Swift Codable DTOs in `api/types.ts`
+- HTTP client is typed and centralized in `api/client.ts`
+- WebSocket auto-reconnects with 3s backoff
+- xterm.js uses WebGL renderer when available
+- CSS variables for theming (mirrors Swift ThemeEngine colors)
+
+#### 6. `tauri-desktop` — Tauri Desktop Agent
+**Domain**: Tauri 2.0 app wrapping web frontend, sidecar server management, system tray
+**Files**: `tauri/`
+**Skills needed**: Rust, Tauri 2.0, IPC
+**Rules**:
+- NO Swift FFI — server is a sidecar process communicating via HTTP/WS
+- System tray shows fleet cost summary
+- IPC commands: get_server_status, restart_server
+
 ### Cross-Cutting Rules (ALL agents must follow)
 
 1. **SOLID always**: Every type, every protocol, every module. No exceptions.
-2. **Minimal dependencies**: Only SwiftTerm, Yams, GRDB.swift. Justify any addition.
+2. **Minimal dependencies**: SwiftTerm, Yams, GRDB.swift, Hummingbird (server only). Justify any addition.
 3. **No Electron, no web views** (except WebPreview for user's dev servers)
 4. **Performance budgets**: <200ms startup, <5ms input latency, <4ms frame render, <10MB per session
 5. **Privacy**: 100% local, zero telemetry, zero network calls (except user's dev servers)
@@ -217,6 +278,7 @@ This project is designed to be built by Claude with specialized sub-agents. Each
 - **Font size shortcuts**: Cmd+= / Cmd+- / Cmd+0 to increase/decrease/reset terminal font size (8-28pt, persisted via @AppStorage).
 - **Resource links**: URLs detected in terminal output are shown in a collapsible Resources panel at the bottom of each session card, with context-aware icons (GitHub, docs, StackOverflow, npm, etc.).
 - **Clone & Launch**: Session launcher can clone a Git repository from URL (HTTPS or SSH) into a chosen directory, then auto-create a session with detected provider and repo name.
+- **Cross-platform (v0.8.0)**: Hybrid architecture — Swift Core as HTTP/WS service + pluggable UI. macOS: native SwiftUI. Linux/Windows: Tauri wrapping React web frontend. Browser: direct web app. All clients talk to `localhost:19850` REST + WebSocket API.
 
 ## Commands
 
@@ -235,4 +297,25 @@ bash build.sh && open build/AgentsBoard.app
 
 # Run CLI tool
 swift run agentsctl
+
+# Run HTTP API server (localhost:19850)
+swift run AgentsBoardServer
+
+# Cross-platform dev helper
+./scripts/dev.sh build    # Platform-aware build
+./scripts/dev.sh test     # Platform-aware test
+./scripts/dev.sh server   # Start HTTP server
+./scripts/dev.sh web      # Start web dev server (localhost:5173)
+./scripts/dev.sh tauri    # Start Tauri dev
+./scripts/dev.sh app      # Build macOS .app
+
+# Docker (Linux)
+docker compose run build
+docker compose up server
+
+# Web frontend
+cd web && npm install && npm run dev
+
+# Tauri desktop
+cd tauri && cargo tauri dev
 ```

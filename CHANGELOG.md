@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.8.0 (2026-03-16)
+
+### Cross-Platform Architecture
+- **HTTP + WebSocket API Server**: New `AgentsBoardServer` executable powered by Hummingbird 2.0. REST API at `localhost:19850/api/v1` exposes sessions, fleet stats, activity, costs, config, themes, and terminal output.
+- **WebSocket real-time events**: Event broker with channels (`fleet`, `session:{id}`, `activity`, `costs`) for live updates to connected clients.
+- **Platform guards**: Core module compiles on Linux with `#if canImport` guards on Metal, AppKit, SwiftTerm, and UserNotifications. NullRenderer and VTParserStub for non-macOS platforms.
+- **Conditional Package.swift**: SwiftTerm dependency is macOS-only. New `AgentsBoardServer` target depends on Hummingbird (cross-platform).
+- **Web frontend**: React 18 + TypeScript + Vite app with xterm.js (WebGL) terminal, fleet overview, session list, activity log, and cost dashboard. Connects to server via REST + WebSocket.
+- **Tauri desktop app**: Wraps web frontend for Linux and Windows. Launches Swift server as sidecar process. System tray with fleet status.
+- **Docker support**: Dockerfile (Swift 5.10 on Ubuntu Noble), docker-compose.yml with build/test/server services.
+- **Unified dev script**: `scripts/dev.sh` with commands: build, test, server, web, tauri, app.
+- **Embedded server**: macOS app can optionally run the HTTP server embedded (configurable in Settings), sharing Core instances between native UI and API.
+- **CLI via HTTP**: `agentsctl` now uses HTTP API instead of Unix sockets. Supports `--host` and `--port` flags. New commands: `config`, `themes`.
+- **CI/CD**: GitHub Actions matrix — macOS (full build), Linux (Docker), web (npm), Tauri (Linux + Windows).
+- **Linux packaging**: `scripts/package-linux.sh` generates .deb package.
+
+### Deprecations
+- `ControlServer` (Unix socket) deprecated in favor of HTTP API. Will be removed in v0.9.0.
+
+### New Dependencies
+- **Hummingbird 2.0**: Async HTTP server (~8 transitive deps)
+- **hummingbird-websocket 2.0**: WebSocket upgrade support
+
 ## v0.7.0 (2026-03-16)
 
 Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`

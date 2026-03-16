@@ -1,7 +1,6 @@
 // MARK: - Notification Manager
 
 import Foundation
-import UserNotifications
 
 // MARK: - Protocol (ISP: narrow interface for notification dispatch)
 
@@ -12,7 +11,24 @@ public protocol NotificationManaging: AnyObject {
     func notifySessionCompleted(sessionId: String, sessionName: String)
 }
 
-// MARK: - Concrete Implementation
+// MARK: - No-Op Implementation (test-safe default, cross-platform)
+
+/// A notification manager that discards all notifications.
+/// Used as the default value in `FleetManager.init` so that unit tests
+/// (which have no app bundle / UNUserNotificationCenter) do not crash.
+/// Also used on non-macOS platforms where UserNotifications is unavailable.
+public final class NoOpNotificationManager: NotificationManaging {
+    public init() {}
+    public func notifyNeedsInput(sessionId: String, sessionName: String) {}
+    public func notifyError(sessionId: String, sessionName: String, error: String) {}
+    public func notifyCostThreshold(sessionId: String, cost: Decimal, threshold: Decimal) {}
+    public func notifySessionCompleted(sessionId: String, sessionName: String) {}
+}
+
+// MARK: - macOS Concrete Implementation
+
+#if canImport(UserNotifications)
+import UserNotifications
 
 /// Dispatches `UNNotificationRequest` items for agent lifecycle events.
 ///
@@ -197,15 +213,4 @@ public extension NSNotification.Name {
     static let agentNotificationTapped = NSNotification.Name("AgentsBoardNotificationTapped")
 }
 
-// MARK: - No-Op Implementation (test-safe default)
-
-/// A notification manager that discards all notifications.
-/// Used as the default value in `FleetManager.init` so that unit tests
-/// (which have no app bundle / UNUserNotificationCenter) do not crash.
-public final class NoOpNotificationManager: NotificationManaging {
-    public init() {}
-    public func notifyNeedsInput(sessionId: String, sessionName: String) {}
-    public func notifyError(sessionId: String, sessionName: String, error: String) {}
-    public func notifyCostThreshold(sessionId: String, cost: Decimal, threshold: Decimal) {}
-    public func notifySessionCompleted(sessionId: String, sessionName: String) {}
-}
+#endif
