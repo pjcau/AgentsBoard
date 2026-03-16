@@ -17,8 +17,8 @@ fi
 
 # 2. Build
 echo "Building..."
-./Scripts/bundle.sh "$VERSION"
-./Scripts/build-dmg.sh "$VERSION"
+./scripts/bundle.sh "$VERSION"
+./scripts/build-dmg.sh "$VERSION"
 
 # 3. Generate changelog
 echo "Generating changelog..."
@@ -54,6 +54,8 @@ brew install --cask agentsboard
 
 ### Manual
 Download \`AgentsBoard-${VERSION}.dmg\` below.
+
+> **Note:** macOS may block the app on first launch. Right-click the app and select \"Open\", or go to **System Settings → Privacy & Security** and click **Open Anyway**.
 " \
     "build/AgentsBoard-${VERSION}.dmg"
 

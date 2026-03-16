@@ -33,6 +33,11 @@ mkdir -p "$MACOS" "$RESOURCES"
 # Copy binary
 cp .build/release/AgentsBoard "$MACOS/"
 
+# Copy icon if exists
+if [ -f "Sources/App/Resources/AppIcon.icns" ]; then
+    cp "Sources/App/Resources/AppIcon.icns" "$RESOURCES/AppIcon.icns"
+fi
+
 # Create Info.plist
 cat > "${CONTENTS}/Info.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -59,8 +64,14 @@ cat > "${CONTENTS}/Info.plist" << PLIST
     <string>14.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.developer-tools</string>
+    <key>NSSupportsAutomaticTermination</key>
+    <false/>
+    <key>NSSupportsSuddenTermination</key>
+    <false/>
 </dict>
 </plist>
 PLIST

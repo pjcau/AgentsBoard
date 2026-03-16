@@ -23,10 +23,41 @@ fi
 TEMP_DMG="build/temp_${DMG_NAME}"
 rm -f "$DMG_PATH" "$TEMP_DMG"
 
-# Create DMG with app and Applications symlink
+# Create DMG with app, Applications symlink, and README
 mkdir -p build/dmg_contents
 cp -R "$APP_PATH" build/dmg_contents/
 ln -sf /Applications build/dmg_contents/Applications
+
+# Add first-launch instructions for unsigned app
+cat > build/dmg_contents/READ\ ME\ FIRST.txt << 'README'
+╔══════════════════════════════════════════════════════════════╗
+║                   AgentsBoard — First Launch                ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║  macOS may block this app because it is not signed with a    ║
+║  Developer ID certificate.                                   ║
+║                                                              ║
+║  To open AgentsBoard:                                        ║
+║                                                              ║
+║  Option A — Right-click to open (recommended):               ║
+║    1. Drag AgentsBoard.app to /Applications                  ║
+║    2. Right-click (or Control-click) AgentsBoard.app         ║
+║    3. Select "Open" from the context menu                    ║
+║    4. Click "Open" in the dialog that appears                ║
+║    (You only need to do this once)                           ║
+║                                                              ║
+║  Option B — System Settings:                                 ║
+║    1. Try to open AgentsBoard.app normally                   ║
+║    2. Go to System Settings > Privacy & Security             ║
+║    3. Scroll down to find the message about AgentsBoard      ║
+║    4. Click "Open Anyway"                                    ║
+║                                                              ║
+║  Option C — Terminal:                                        ║
+║    Run: xattr -cr /Applications/AgentsBoard.app              ║
+║    Then open the app normally.                               ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+README
 
 hdiutil create "$TEMP_DMG" \
     -volname "$VOLUME_NAME" \
