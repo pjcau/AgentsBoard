@@ -771,5 +771,24 @@ Obiettivo: drag-and-drop, cross-agent context, performance optimization, packagi
 | 19 | Polish | Performance, Comprehensive testing | 19.1, 19.2 |
 | 20 | Polish | Build pipeline, Documentation & launch | 20.1, 20.2 |
 
-**Totale: 20 sprint × 1 settimana = ~5 mesi di sviluppo**
-**Totale step: 42 skill/feature deliverables**
+| 21 | Testing | E2E sandboxed execution | 21.1, 21.2 |
+| 22 | Performance | Metal viewport scissoring for 100+ sessions | 22.1 |
+
+### Sprint 21 — E2E Test Sandbox
+
+#### Step 21.1 — `e2e-macos-vm`
+**Agent**: `devops`
+**Description**: Set up a macOS VM (Parallels or UTM) for running XCUITest E2E tests without taking over the user's screen. Create `scripts/run-e2e-vm.sh` that boots the VM, copies the built .app, runs tests inside, and collects results.
+
+#### Step 21.2 — `e2e-second-user`
+**Agent**: `devops`
+**Description**: Create a dedicated macOS user account for E2E testing. Create `scripts/run-e2e-user.sh` that uses `ssh testuser@localhost` to run XCUITest on a separate login session. The user can continue working on their primary session while tests run in the background.
+
+### Sprint 22 — Metal Fleet Rendering
+
+#### Step 22.1 — `metal-viewport-scissoring`
+**Agent**: `macos-core`
+**Description**: Bridge SwiftTerm's Terminal buffer (getCharData/getLine) into TerminalGridSnapshot, then render all sessions in a single MTKView using MetalRenderer's existing viewport scissoring. Zero NSView per session — pure GPU rendering for 100+ concurrent sessions. This is the migration path from SwiftTerm → Metal for the session grid.
+
+**Totale: 22 sprint**
+**Totale step: 46 skill/feature deliverables**

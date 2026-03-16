@@ -33,7 +33,7 @@ mkdir -p "$MACOS" "$RESOURCES"
 # Copy binary
 cp .build/release/AgentsBoard "$MACOS/"
 
-# Copy icon if exists
+# Copy app icon
 if [ -f "Sources/App/Resources/AppIcon.icns" ]; then
     cp "Sources/App/Resources/AppIcon.icns" "$RESOURCES/AppIcon.icns"
 fi
@@ -52,6 +52,8 @@ cat > "${CONTENTS}/Info.plist" << PLIST
     <string>${BUNDLE_ID}</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleName</key>
     <string>AgentsBoard</string>
     <key>CFBundlePackageType</key>
