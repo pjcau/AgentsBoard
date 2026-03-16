@@ -28,33 +28,73 @@ mkdir -p build/dmg_contents
 cp -R "$APP_PATH" build/dmg_contents/
 ln -sf /Applications build/dmg_contents/Applications
 
-# Add first-launch instructions for unsigned app
+# Create installer script that removes quarantine and installs
+cat > build/dmg_contents/Install\ AgentsBoard.command << 'INSTALLER'
+#!/bin/bash
+# AgentsBoard Installer
+# This script installs the app and removes the macOS quarantine flag
+# so you don't get the "damaged app" error.
+
+clear
+echo ""
+echo "  ╔══════════════════════════════════════════╗"
+echo "  ║     AgentsBoard — Installer              ║"
+echo "  ╚══════════════════════════════════════════╝"
+echo ""
+
+APP_SRC="$(dirname "$0")/AgentsBoard.app"
+APP_DST="/Applications/AgentsBoard.app"
+
+if [ ! -d "$APP_SRC" ]; then
+    echo "  ✗ Error: AgentsBoard.app not found in DMG."
+    echo "    Press any key to exit..."
+    read -n1
+    exit 1
+fi
+
+# Copy to Applications
+echo "  → Installing to /Applications..."
+if [ -d "$APP_DST" ]; then
+    rm -rf "$APP_DST"
+fi
+cp -R "$APP_SRC" "$APP_DST"
+
+# Remove quarantine flag
+echo "  → Removing quarantine flag..."
+xattr -cr "$APP_DST"
+
+echo ""
+echo "  ✔ AgentsBoard installed successfully!"
+echo ""
+echo "  → Launching AgentsBoard..."
+echo ""
+
+open "$APP_DST"
+
+# Close Terminal window after 2 seconds
+sleep 2
+osascript -e 'tell application "Terminal" to close front window' 2>/dev/null &
+INSTALLER
+chmod +x build/dmg_contents/Install\ AgentsBoard.command
+
+# Add README with instructions
 cat > build/dmg_contents/READ\ ME\ FIRST.txt << 'README'
 ╔══════════════════════════════════════════════════════════════╗
 ║                   AgentsBoard — First Launch                ║
 ╠══════════════════════════════════════════════════════════════╣
 ║                                                              ║
-║  macOS may block this app because it is not signed with a    ║
-║  Developer ID certificate.                                   ║
+║  RECOMMENDED: Double-click "Install AgentsBoard.command"     ║
+║  It will install the app and open it automatically.          ║
 ║                                                              ║
-║  To open AgentsBoard:                                        ║
+║  If you prefer to install manually:                          ║
 ║                                                              ║
-║  Option A — Right-click to open (recommended):               ║
-║    1. Drag AgentsBoard.app to /Applications                  ║
-║    2. Right-click (or Control-click) AgentsBoard.app         ║
-║    3. Select "Open" from the context menu                    ║
-║    4. Click "Open" in the dialog that appears                ║
-║    (You only need to do this once)                           ║
+║  1. Drag AgentsBoard.app to /Applications                    ║
+║  2. Open Terminal and run:                                   ║
+║     xattr -cr /Applications/AgentsBoard.app                  ║
+║  3. Open AgentsBoard from /Applications                      ║
 ║                                                              ║
-║  Option B — System Settings:                                 ║
-║    1. Try to open AgentsBoard.app normally                   ║
-║    2. Go to System Settings > Privacy & Security             ║
-║    3. Scroll down to find the message about AgentsBoard      ║
-║    4. Click "Open Anyway"                                    ║
-║                                                              ║
-║  Option C — Terminal:                                        ║
-║    Run: xattr -cr /Applications/AgentsBoard.app              ║
-║    Then open the app normally.                               ║
+║  DO NOT double-click AgentsBoard.app directly from the DMG   ║
+║  — macOS will block it as "damaged".                         ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 README
