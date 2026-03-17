@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { ActivityEvent } from '../../api/types';
 import { getActivity } from '../../api/client';
 

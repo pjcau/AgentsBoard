@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { CostSummary, CostEntry } from '../../api/types';
 import { getCosts, getCostHistory } from '../../api/client';
 

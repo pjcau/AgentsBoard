@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FleetOverview } from '../FleetOverview/FleetOverview';
 import { SessionList } from '../SessionList/SessionList';
 import { ActivityLog } from '../ActivityLog/ActivityLog';
