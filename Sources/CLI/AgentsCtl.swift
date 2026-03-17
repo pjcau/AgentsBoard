@@ -2,6 +2,9 @@
 // Command-line tool to control a running AgentsBoard instance via HTTP API.
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 @main
 struct AgentsCtl {

@@ -4,6 +4,7 @@
 import Foundation
 import Hummingbird
 import HummingbirdWebSocket
+import NIOCore
 
 enum APIServer {
 
@@ -19,7 +20,7 @@ enum APIServer {
 
         // Health check
         router.get("/health") { _, _ in
-            return Response(status: .ok, body: .init(byteBuffer: .init(string: "{\"status\":\"ok\"}")))
+            return Response(status: .ok, body: .init(byteBuffer: ByteBuffer(string: "{\"status\":\"ok\"}")))
         }
 
         // REST API routes

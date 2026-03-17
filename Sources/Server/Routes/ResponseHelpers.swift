@@ -3,6 +3,7 @@
 
 import Foundation
 import Hummingbird
+import NIOCore
 
 func jsonResponse<T: Encodable>(_ value: T) throws -> Response {
     let encoder = JSONEncoder()
@@ -13,20 +14,20 @@ func jsonResponse<T: Encodable>(_ value: T) throws -> Response {
     return Response(
         status: .ok,
         headers: headers,
-        body: .init(byteBuffer: .init(data: data))
+        body: .init(byteBuffer: ByteBuffer(bytes: [UInt8](data)))
     )
 }
 
 func notFound(_ message: String) -> Response {
     Response(
         status: .notFound,
-        body: .init(byteBuffer: .init(string: "{\"error\":\"\(message)\"}"))
+        body: .init(byteBuffer: ByteBuffer(string: "{\"error\":\"\(message)\"}"))
     )
 }
 
 func badRequest(_ message: String) -> Response {
     Response(
         status: .badRequest,
-        body: .init(byteBuffer: .init(string: "{\"error\":\"\(message)\"}"))
+        body: .init(byteBuffer: ByteBuffer(string: "{\"error\":\"\(message)\"}"))
     )
 }

@@ -134,8 +134,9 @@ struct TerminalColorTests {
     }
 }
 
-// MARK: - PTYProcess Suspend/Resume Tests
+// MARK: - PTYProcess Suspend/Resume Tests (macOS only — requires forkpty)
 
+#if canImport(Darwin)
 @Suite("PTYProcessSuspend")
 struct PTYProcessSuspendTests {
 
@@ -181,6 +182,7 @@ struct PTYProcessSuspendTests {
         // (the cleanup path resumes before sending SIGTERM)
     }
 }
+#endif
 
 // MARK: - CursorPosition Tests
 

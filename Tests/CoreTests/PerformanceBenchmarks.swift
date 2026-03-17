@@ -4,7 +4,21 @@
 
 import Testing
 import Foundation
+#if canImport(CoreFoundation)
+import CoreFoundation
+#endif
 @testable import AgentsBoardCore
+
+/// Cross-platform high-resolution timer.
+private func currentTimeMs() -> Double {
+    #if canImport(CoreFoundation)
+    return CFAbsoluteTimeGetCurrent() * 1000.0
+    #else
+    var ts = timespec()
+    clock_gettime(CLOCK_MONOTONIC, &ts)
+    return Double(ts.tv_sec) * 1000.0 + Double(ts.tv_nsec) / 1_000_000.0
+    #endif
+}
 
 // MARK: - 1. Metal GPU Rendering — Vertex Generation Benchmark
 
@@ -41,7 +55,7 @@ struct MetalVertexGenerationTests {
         let viewport = makeViewport(sessionId: "s1", x: 0, y: 0, grid: grid)
         let expectedVertices = 80 * 24 * 6 // 11,520 vertices
 
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
         // Simulate vertex generation (same logic as MetalRenderer.buildVertices)
         var vertices: [(SIMD2<Float>, SIMD2<Float>, SIMD4<Float>, SIMD4<Float>)] = []
         vertices.reserveCapacity(expectedVertices)
@@ -75,7 +89,7 @@ struct MetalVertexGenerationTests {
             vertices.append((SIMD2(ndcX, ndcY - ndcH), SIMD2(0, 1), fg, bg))
         }
 
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
 
         #expect(vertices.count == expectedVertices, "Expected \(expectedVertices) vertices, got \(vertices.count)")
         #expect(elapsed < 20.0, "Single session vertex build took \(String(format: "%.2f", elapsed))ms — budget: <20ms (target: <4ms)")
@@ -90,7 +104,7 @@ struct MetalVertexGenerationTests {
             makeViewport(sessionId: "s\(i)", x: CGFloat(i % 5) * 384, y: CGFloat(i / 5) * 384, grid: grid)
         }
 
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
 
         var vertices: [(SIMD2<Float>, SIMD2<Float>, SIMD4<Float>, SIMD4<Float>)] = []
         vertices.reserveCapacity(10 * 80 * 24 * 6)
@@ -127,7 +141,7 @@ struct MetalVertexGenerationTests {
             }
         }
 
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
 
         #expect(vertices.count == 10 * 80 * 24 * 6, "Expected \(10 * 80 * 24 * 6) vertices")
         // TARGET: <4ms — CURRENT: ~13ms (needs direct MTLBuffer writes, not Swift Array)
@@ -143,7 +157,7 @@ struct MetalVertexGenerationTests {
             makeViewport(sessionId: "s\(i)", x: CGFloat(i % 10) * 192, y: CGFloat(i / 10) * 216, grid: grid)
         }
 
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
 
         var vertices: [(SIMD2<Float>, SIMD2<Float>)] = [] // Lighter struct for stress
         let totalExpected = 50 * 80 * 24 * 6
@@ -179,7 +193,7 @@ struct MetalVertexGenerationTests {
             }
         }
 
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
 
         #expect(vertices.count == totalExpected, "Expected \(totalExpected) vertices, got \(vertices.count)")
         // TARGET: <16ms (one 60fps frame) — CURRENT: ~37ms (needs direct MTLBuffer writes)
@@ -318,7 +332,7 @@ struct ViewportScissoringTests {
 
     @Test func fiftyViewportScissorRects() {
         // Validate that 50 scissor rects can be computed in <1ms
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
 
         var scissorRects: [(x: Int, y: Int, width: Int, height: Int)] = []
         scissorRects.reserveCapacity(50)
@@ -338,7 +352,7 @@ struct ViewportScissoringTests {
             ))
         }
 
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
 
         #expect(scissorRects.count == 50)
         #expect(elapsed < 1.0, "50 scissor rect computation: \(String(format: "%.3f", elapsed))ms — budget: <1ms")
@@ -397,6 +411,7 @@ struct GlyphAtlasTests {
 
 // MARK: - 5. kqueue I/O Multiplexer — 50+ Sessions
 
+#if canImport(Darwin)
 @Suite("PTYMultiplexerScaling")
 struct PTYMultiplexerScalingTests {
 
@@ -447,6 +462,7 @@ struct PTYMultiplexerScalingTests {
         print("  📦 50-session multiplexer overhead: \(String(format: "%.1f", fiftySessionsKB))KB")
     }
 }
+#endif
 
 // MARK: - 6. TerminalGrid Performance
 
@@ -460,11 +476,11 @@ struct TerminalGridPerformanceTests {
         _ = grid.renderSnapshot()
 
         let iterations = 100
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
         for _ in 0..<iterations {
             _ = grid.renderSnapshot()
         }
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
         let perSnapshot = elapsed / Double(iterations)
 
         #expect(perSnapshot < 1.0, "Snapshot generation: \(String(format: "%.3f", perSnapshot))ms — budget: <1ms")
@@ -474,13 +490,13 @@ struct TerminalGridPerformanceTests {
     @Test func resizePerformance() {
         let grid = TerminalGrid(columns: 80, rows: 24)
 
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
         for i in 0..<50 {
             let cols = 80 + (i % 40)
             let rows = 24 + (i % 16)
             grid.resize(newColumns: cols, newRows: rows)
         }
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
 
         #expect(elapsed < 10.0, "50 resizes: \(String(format: "%.3f", elapsed))ms — budget: <10ms")
         print("  ⏱ 50 grid resizes: \(String(format: "%.3f", elapsed))ms")
@@ -489,7 +505,7 @@ struct TerminalGridPerformanceTests {
     @Test func scrollPerformance() {
         let grid = TerminalGrid(columns: 80, rows: 24, scrollbackLimit: 10000)
 
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
         for _ in 0..<1000 {
             grid.scrollUp(lines: 1)
         }
@@ -497,7 +513,7 @@ struct TerminalGridPerformanceTests {
             grid.scrollDown(lines: 1)
         }
         grid.scrollToBottom()
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
 
         #expect(elapsed < 5.0, "2000 scrolls: \(String(format: "%.3f", elapsed))ms — budget: <5ms")
         print("  ⏱ 2000 scroll operations: \(String(format: "%.3f", elapsed))ms")
@@ -507,9 +523,9 @@ struct TerminalGridPerformanceTests {
         // Stress: 200 cols × 50 rows (large terminal)
         let grid = TerminalGrid(columns: 200, rows: 50)
 
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
         let snapshot = grid.renderSnapshot()
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
 
         #expect(snapshot.cells.count == 200 * 50, "Large grid: \(snapshot.cells.count) cells")
         #expect(elapsed < 10.0, "Large grid snapshot: \(String(format: "%.3f", elapsed))ms — budget: <10ms (target: <2ms)")
@@ -527,12 +543,12 @@ struct InputLatencyTests {
         let keystrokes = "Hello, World! This is a test of typing speed.\n"
         let iterations = 10000
 
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
         for _ in 0..<iterations {
             let data = keystrokes.data(using: .utf8)!
             _ = data.count
         }
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
         let perKeystroke = elapsed / Double(iterations)
 
         #expect(perKeystroke < 0.01, "Data encoding: \(String(format: "%.4f", perKeystroke))ms per keystroke — budget: <0.01ms")
@@ -543,7 +559,7 @@ struct InputLatencyTests {
         // Simulates: keystroke → Data encode → dispatch to queue → write ready
         let iterations = 1000
 
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
         for _ in 0..<iterations {
             // 1. Key event → string
             let char = "a"
@@ -557,7 +573,7 @@ struct InputLatencyTests {
                 _ = buffer.count
             }
         }
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
         let perInput = elapsed / Double(iterations)
 
         #expect(perInput < 0.1, "Input pipeline: \(String(format: "%.4f", perInput))ms per keystroke — budget: <0.1ms (CPU side)")
@@ -572,7 +588,7 @@ struct StartupPerformanceTests {
 
     @Test func coreObjectCreation() {
         // Measures creation of all core objects (sans Metal/GPU)
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
 
         // Phase 1: Terminal infrastructure
         let grid = TerminalGrid(columns: 80, rows: 24)
@@ -597,21 +613,21 @@ struct StartupPerformanceTests {
             ))
         }
 
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
 
         #expect(elapsed < 50.0, "Core object creation: \(String(format: "%.1f", elapsed))ms — budget: <50ms (leaves 150ms for GPU+window)")
         print("  ⏱ Core object creation: \(String(format: "%.1f", elapsed))ms")
     }
 
     @Test func sessionCreationIsLightweight() {
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
 
         var sessions: [TerminalSession] = []
         for _ in 0..<50 {
             sessions.append(TerminalSession())
         }
 
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
         let perSession = elapsed / 50.0
 
         #expect(perSession < 1.0, "Session creation: \(String(format: "%.3f", perSession))ms per session — budget: <1ms")
@@ -693,7 +709,7 @@ struct ANSIColorPerformanceTests {
         ]
 
         let iterations = 10000
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = currentTimeMs()
 
         for _ in 0..<iterations {
             for code: UInt8 in 0..<255 {
@@ -709,7 +725,7 @@ struct ANSIColorPerformanceTests {
             }
         }
 
-        let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000.0
+        let elapsed = currentTimeMs() - start
         let perLookup = elapsed / (Double(iterations) * 255.0)
 
         #expect(perLookup < 0.001, "ANSI color lookup: \(String(format: "%.6f", perLookup))ms — should be <0.001ms")

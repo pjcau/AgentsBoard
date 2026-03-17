@@ -28,7 +28,7 @@ final class ActivityEventAdapter {
                     channel: "activity",
                     event: "new_activity",
                     data: .dict([
-                        "id": .string(event.id),
+                        "id": .string(event.id.uuidString),
                         "sessionId": .string(event.sessionId),
                         "eventType": .string(event.eventType.rawValue),
                         "details": .string(event.details),

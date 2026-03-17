@@ -5,7 +5,7 @@ import Foundation
 /// Renders terminal cell grids to a display surface (Metal).
 public protocol TerminalRenderable: AnyObject {
     func render(viewports: [TerminalViewportData])
-    func updateGlyphAtlas(fontFamily: String, fontSize: CGFloat)
+    func updateGlyphAtlas(fontFamily: String, fontSize: Double)
     func invalidate()
 }
 
@@ -28,12 +28,12 @@ public struct TerminalViewportData: Sendable {
 
 /// A rectangle within the render surface.
 public struct ViewportRect: Equatable, Sendable {
-    public let x: CGFloat
-    public let y: CGFloat
-    public let width: CGFloat
-    public let height: CGFloat
+    public let x: Double
+    public let y: Double
+    public let width: Double
+    public let height: Double
 
-    public init(x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) {
+    public init(x: Double, y: Double, width: Double, height: Double) {
         self.x = x
         self.y = y
         self.width = width

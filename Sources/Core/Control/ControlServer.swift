@@ -1,6 +1,8 @@
 // MARK: - Control Server (Step 13.2)
 // Unix socket server for agentsctl CLI communication.
 
+#if canImport(Darwin)
+
 import Foundation
 
 @available(*, deprecated, message: "Use AgentsBoardServer HTTP API instead. Will be removed in v0.9.0.")
@@ -126,3 +128,5 @@ public enum ControlServerError: Error {
     case bindFailed
     case listenFailed
 }
+
+#endif

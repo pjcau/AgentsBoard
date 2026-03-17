@@ -15,7 +15,9 @@ public final class ConfigManager: ConfigProviding {
     private let yamlParser: any YAMLParsing
     private let userConfigPath: String
     private var projectConfigPath: String?
+    #if canImport(Darwin)
     private var fileWatchers: [DispatchSourceFileSystemObject] = []
+    #endif
 
     // MARK: - Config Paths
 
@@ -77,8 +79,10 @@ public final class ConfigManager: ConfigProviding {
     }
 
     public func stopWatching() {
+        #if canImport(Darwin)
         fileWatchers.forEach { $0.cancel() }
         fileWatchers.removeAll()
+        #endif
     }
 
     // MARK: - Private
@@ -104,6 +108,7 @@ public final class ConfigManager: ConfigProviding {
     }
 
     private func watchFile(at path: String) {
+        #if canImport(Darwin)
         let fd = open(path, O_EVTONLY)
         guard fd >= 0 else { return }
 
@@ -123,5 +128,6 @@ public final class ConfigManager: ConfigProviding {
 
         source.resume()
         fileWatchers.append(source)
+        #endif
     }
 }

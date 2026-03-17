@@ -3,6 +3,7 @@
 
 import Foundation
 import Hummingbird
+import NIOCore
 import AgentsBoardCore
 
 enum SessionRoutes {
@@ -32,12 +33,13 @@ enum SessionRoutes {
                   let session = fleet.session(byId: id) else {
                 return notFound("Session not found")
             }
-            let body = try await request.body.collect(upTo: 1_048_576)
-            guard let input = try? JSONDecoder().decode(InputDTO.self, from: body) else {
+            var body = try await request.body.collect(upTo: 1_048_576)
+            guard let bytes = body.readBytes(length: body.readableBytes),
+                  let input = try? JSONDecoder().decode(InputDTO.self, from: Data(bytes)) else {
                 return badRequest("Invalid input body")
             }
             session.sendInput(input.text)
-            return Response(status: .ok, body: .init(byteBuffer: .init(string: "{\"status\":\"sent\"}")))
+            return Response(status: .ok, body: .init(byteBuffer: ByteBuffer(string: "{\"status\":\"sent\"}")))
         }
 
         // POST /api/v1/sessions/:id/archive
@@ -46,7 +48,7 @@ enum SessionRoutes {
                 return badRequest("Missing session ID")
             }
             fleet.archiveSession(id: id)
-            return Response(status: .ok, body: .init(byteBuffer: .init(string: "{\"status\":\"archived\"}")))
+            return Response(status: .ok, body: .init(byteBuffer: ByteBuffer(string: "{\"status\":\"archived\"}")))
         }
 
         // DELETE /api/v1/sessions/:id
@@ -55,7 +57,7 @@ enum SessionRoutes {
                 return badRequest("Missing session ID")
             }
             fleet.deleteSession(id: id)
-            return Response(status: .ok, body: .init(byteBuffer: .init(string: "{\"status\":\"deleted\"}")))
+            return Response(status: .ok, body: .init(byteBuffer: ByteBuffer(string: "{\"status\":\"deleted\"}")))
         }
     }
 }

@@ -3,6 +3,7 @@
 
 import Foundation
 import Hummingbird
+import NIOCore
 import AgentsBoardCore
 
 enum ConfigRoutes {
@@ -30,13 +31,14 @@ enum ConfigRoutes {
 
         // PUT /api/v1/themes
         themeGroup.put { request, _ -> Response in
-            let body = try await request.body.collect(upTo: 65536)
-            guard let dto = try? JSONDecoder().decode(ThemeSelectDTO.self, from: body) else {
+            var body = try await request.body.collect(upTo: 65536)
+            guard let bytes = body.readBytes(length: body.readableBytes),
+                  let dto = try? JSONDecoder().decode(ThemeSelectDTO.self, from: Data(bytes)) else {
                 return badRequest("Invalid theme selection body")
             }
             do {
                 try themes.loadTheme(named: dto.name)
-                return Response(status: .ok, body: .init(byteBuffer: .init(string: "{\"status\":\"applied\"}")))
+                return Response(status: .ok, body: .init(byteBuffer: ByteBuffer(string: "{\"status\":\"applied\"}")))
             } catch {
                 return badRequest("Theme not found: \(dto.name)")
             }

@@ -1,5 +1,8 @@
 // MARK: - PTY Multiplexer (Step 2.1)
 // kqueue-based I/O multiplexer for N PTY sessions on a single thread.
+// macOS-only: kqueue is not available on Linux.
+
+#if canImport(Darwin)
 
 import Foundation
 import Darwin.POSIX
@@ -169,3 +172,5 @@ final class PTYMultiplexer {
 enum MultiplexerError: Error {
     case kqueueFailed(Int32)
 }
+
+#endif

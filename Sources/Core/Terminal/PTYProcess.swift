@@ -3,6 +3,8 @@
 
 import Foundation
 
+#if canImport(Darwin)
+
 public final class PTYProcess {
 
     // MARK: - Properties
@@ -148,6 +150,33 @@ public final class PTYProcess {
         isSuspended = false
     }
 }
+
+#else
+
+// MARK: - PTY Process Stub (Linux — PTY managed by server-side tooling)
+
+public final class PTYProcess {
+    public let fileDescriptor: Int32 = -1
+    public let pid: pid_t = -1
+
+    init(
+        command: String,
+        workingDirectory: String? = nil,
+        environment: [String: String]? = nil,
+        size: TerminalSize = .default
+    ) throws {
+        throw PTYError.forkFailed(0)
+    }
+
+    func write(_ data: Data) {}
+    func resize(columns: Int, rows: Int) {}
+    func suspend() {}
+    func resume() {}
+    func terminate() {}
+    func waitForExit() -> Int32 { 0 }
+}
+
+#endif
 
 // MARK: - PTY Errors
 

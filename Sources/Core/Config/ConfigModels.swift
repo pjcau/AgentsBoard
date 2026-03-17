@@ -6,7 +6,7 @@ import Foundation
 public struct AppConfig: Codable, Equatable, Sendable {
     public var theme: String
     public var fontFamily: String
-    public var fontSize: CGFloat
+    public var fontSize: Double
     public var notifications: Bool
     public var scrollback: Int
     public var layout: LayoutMode
@@ -14,7 +14,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
     public var notificationSounds: Bool
     public var terminalNewlineMode: NewlineMode
 
-    public init(theme: String, fontFamily: String, fontSize: CGFloat, notifications: Bool, scrollback: Int, layout: LayoutMode, menuBarMode: Bool, notificationSounds: Bool, terminalNewlineMode: NewlineMode) {
+    public init(theme: String, fontFamily: String, fontSize: Double, notifications: Bool, scrollback: Int, layout: LayoutMode, menuBarMode: Bool, notificationSounds: Bool, terminalNewlineMode: NewlineMode) {
         self.theme = theme
         self.fontFamily = fontFamily
         self.fontSize = fontSize

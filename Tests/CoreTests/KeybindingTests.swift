@@ -2,7 +2,9 @@
 
 import Testing
 import Foundation
+#if canImport(AppKit)
 import AppKit
+#endif
 @testable import AgentsBoardCore
 
 // MARK: - KeyModifiers Tests
@@ -30,6 +32,7 @@ struct KeyModifiersTests {
         #expect(all.contains(.control))
     }
 
+    #if canImport(AppKit)
     @Test func nsEventFlagsConversion() {
         let cmd = KeyModifiers.command
         let flags = cmd.nsEventFlags
@@ -42,6 +45,7 @@ struct KeyModifiersTests {
         #expect(modifiers.contains(.command))
         #expect(modifiers.contains(.shift))
     }
+    #endif
 }
 
 // MARK: - KeyCombination Tests

@@ -61,8 +61,8 @@ public final class MetalRenderer: NSObject, TerminalRenderable, MTKViewDelegate 
         pendingViewports = viewports
     }
 
-    public func updateGlyphAtlas(fontFamily: String, fontSize: CGFloat) {
-        glyphAtlas.build(fontFamily: fontFamily, fontSize: fontSize)
+    public func updateGlyphAtlas(fontFamily: String, fontSize: Double) {
+        glyphAtlas.build(fontFamily: fontFamily, fontSize: CGFloat(fontSize))
     }
 
     public func invalidate() {
@@ -393,7 +393,7 @@ public final class MetalRenderer: NSObject, TerminalRenderable, MTKViewDelegate 
 public final class NullRenderer: TerminalRenderable {
     public init() {}
     public func render(viewports: [TerminalViewportData]) {}
-    public func updateGlyphAtlas(fontFamily: String, fontSize: CGFloat) {}
+    public func updateGlyphAtlas(fontFamily: String, fontSize: Double) {}
     public func invalidate() {}
 }
 

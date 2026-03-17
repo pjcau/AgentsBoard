@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 
 import PackageDescription
 
@@ -14,15 +14,68 @@ let swiftTermDependency: [Package.Dependency] = []
 let swiftTermTarget: [Target.Dependency] = []
 #endif
 
+// Shared Swift settings: disable strict concurrency for existing code not yet migrated
+let sharedSwiftSettings: [SwiftSetting] = [
+    .swiftLanguageMode(.v5),
+]
+
+// macOS-only targets (app, UI, UI tests)
+#if os(macOS)
+let macOSTargets: [Target] = [
+    .executableTarget(
+        name: "AgentsBoard",
+        dependencies: [
+            "AgentsBoardCore",
+            "AgentsBoardUI",
+        ],
+        path: "Sources/App",
+        resources: [
+            .copy("Resources/AppIcon.icns"),
+        ],
+        swiftSettings: sharedSwiftSettings
+    ),
+    .target(
+        name: "AgentsBoardUI",
+        dependencies: [
+            "AgentsBoardCore",
+        ] + swiftTermTarget,
+        path: "Sources/UI",
+        resources: [
+            .process("Localization"),
+        ],
+        swiftSettings: sharedSwiftSettings
+    ),
+    .testTarget(
+        name: "AgentsBoardUITests",
+        dependencies: ["AgentsBoardUI"],
+        path: "Tests/UITests",
+        swiftSettings: sharedSwiftSettings
+    ),
+    .executableTarget(
+        name: "AgentsBoardCLI",
+        dependencies: [
+            "AgentsBoardCore",
+        ],
+        path: "Sources/CLI",
+        swiftSettings: sharedSwiftSettings
+    ),
+]
+let macOSProducts: [Product] = [
+    .executable(name: "AgentsBoard", targets: ["AgentsBoard"]),
+    .executable(name: "agentsctl", targets: ["AgentsBoardCLI"]),
+]
+#else
+let macOSTargets: [Target] = []
+let macOSProducts: [Product] = []
+#endif
+
 let package = Package(
     name: "AgentsBoard",
     defaultLocalization: "en",
     platforms: [
         .macOS(.v14)
     ],
-    products: [
-        .executable(name: "AgentsBoard", targets: ["AgentsBoard"]),
-        .executable(name: "agentsctl", targets: ["AgentsBoardCLI"]),
+    products: macOSProducts + [
         .executable(name: "AgentsBoardServer", targets: ["AgentsBoardServer"]),
         .library(name: "AgentsBoardCore", targets: ["AgentsBoardCore"]),
     ],
@@ -32,20 +85,7 @@ let package = Package(
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.0.0"),
         .package(url: "https://github.com/hummingbird-project/hummingbird-websocket.git", from: "2.0.0"),
     ],
-    targets: [
-        // Main macOS app
-        .executableTarget(
-            name: "AgentsBoard",
-            dependencies: [
-                "AgentsBoardCore",
-                "AgentsBoardUI",
-            ],
-            path: "Sources/App",
-            resources: [
-                .copy("Resources/AppIcon.icns"),
-            ]
-        ),
-
+    targets: macOSTargets + [
         // Core domain logic — zero UI dependencies, cross-platform
         .target(
             name: "AgentsBoardCore",
@@ -54,19 +94,8 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDB.swift"),
             ],
             path: "Sources/Core",
-            exclude: ["Rendering/Shaders.metal"]
-        ),
-
-        // UI layer — SwiftUI + AppKit (macOS only)
-        .target(
-            name: "AgentsBoardUI",
-            dependencies: [
-                "AgentsBoardCore",
-            ] + swiftTermTarget,
-            path: "Sources/UI",
-            resources: [
-                .process("Localization"),
-            ]
+            exclude: ["Rendering/Shaders.metal"],
+            swiftSettings: sharedSwiftSettings
         ),
 
         // HTTP + WebSocket API server (cross-platform)
@@ -77,36 +106,24 @@ let package = Package(
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "HummingbirdWebSocket", package: "hummingbird-websocket"),
             ],
-            path: "Sources/Server"
-        ),
-
-        // CLI control tool
-        .executableTarget(
-            name: "AgentsBoardCLI",
-            dependencies: [
-                "AgentsBoardCore",
-            ],
-            path: "Sources/CLI"
+            path: "Sources/Server",
+            swiftSettings: sharedSwiftSettings
         ),
 
         // Tests
         .testTarget(
             name: "AgentsBoardCoreTests",
             dependencies: ["AgentsBoardCore"],
-            path: "Tests/CoreTests"
-        ),
-        .testTarget(
-            name: "AgentsBoardUITests",
-            dependencies: ["AgentsBoardUI"],
-            path: "Tests/UITests"
+            path: "Tests/CoreTests",
+            swiftSettings: sharedSwiftSettings
         ),
         .testTarget(
             name: "AgentsBoardServerTests",
             dependencies: [
-                "AgentsBoardServer",
                 "AgentsBoardCore",
             ],
-            path: "Tests/ServerTests"
+            path: "Tests/ServerTests",
+            swiftSettings: sharedSwiftSettings
         ),
     ]
 )

@@ -3,6 +3,8 @@
 
 import Foundation
 
+#if canImport(Darwin)
+
 final class HookServer {
 
     // MARK: - Properties
@@ -198,6 +200,8 @@ enum HookServerError: Error {
     case bindFailed(Int32)
     case listenFailed(Int32)
 }
+
+#endif
 
 enum HookParseError: Error {
     case invalidFormat
