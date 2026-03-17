@@ -21,19 +21,21 @@ COPY Package.swift Package.resolved* ./
 COPY Sources/ Sources/
 COPY Tests/ Tests/
 
-# Build Server product (produces linked binary)
-RUN swift build --product AgentsBoardServer -c release
+# Build Server product with static linking (standalone binary, no Swift runtime needed)
+RUN swift build --product AgentsBoardServer -c release \
+    --static-swift-stdlib
 
-# --- Runtime image ---
-FROM swift:6.0-noble-slim
+# --- Minimal runtime image (no Swift runtime needed) ---
+FROM ubuntu:24.04
 
-RUN apt-get update && apt-get install -y libsqlite3-0 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsqlite3-0 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the custom sqlite3 from builder (with SQLITE_ENABLE_SNAPSHOT)
-COPY --from=builder /usr/lib/*-linux-gnu/libsqlite3* /usr/lib/
+COPY --from=builder /usr/lib/*-linux-gnu/libsqlite3.so* /usr/lib/
 
 WORKDIR /app
-# Binary path includes architecture triple on Linux
 COPY --from=builder /app/.build/*-unknown-linux-gnu/release/AgentsBoardServer /usr/local/bin/agentsboard-server
 
 EXPOSE 19850
