@@ -1,6 +1,12 @@
 # Changelog
 
-## v0.8.0 (2026-03-16)
+## v0.8.0 (2026-03-17)
+
+Install:
+- **macOS**: `brew tap pjcau/agentsboard && brew install --cask agentsboard`
+- **Linux**: Download `AgentsBoard-0.8.0-linux-arm64.tar.gz` from Releases
+- **Web**: Download `AgentsBoard-0.8.0-web.tar.gz` and serve with any HTTP server
+- **Docker**: `docker run -p 19850:19850 agentsboard-ubuntu`
 
 ### Cross-Platform Architecture
 - **HTTP + WebSocket API Server**: New `AgentsBoardServer` executable powered by Hummingbird 2.0. REST API at `localhost:19850/api/v1` exposes sessions, fleet stats, activity, costs, config, themes, and terminal output.
