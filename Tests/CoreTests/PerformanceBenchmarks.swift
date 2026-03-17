@@ -304,7 +304,7 @@ struct ViewportScissoringTests {
         let totalArea = viewports.reduce(0.0) { $0 + $1.width * $1.height }
         let screenArea = screenWidth * screenHeight
 
-        #expect(totalArea == screenArea, "Viewports must cover full screen: \(totalArea) vs \(screenArea)")
+        #expect(abs(totalArea - screenArea) < 0.01, "Viewports must cover full screen: \(totalArea) vs \(screenArea)")
     }
 
     @Test func ndcConversionCorrectness() {
