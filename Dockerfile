@@ -21,19 +21,23 @@ COPY Package.swift Package.resolved* ./
 COPY Sources/ Sources/
 COPY Tests/ Tests/
 
-# Build Core + Server targets only (no macOS UI)
-RUN swift build --target AgentsBoardCore --target AgentsBoardServer -c release
+# Build Server product (produces linked binary)
+RUN swift build --product AgentsBoardServer -c release
 
 # --- Runtime image ---
 FROM swift:6.0-noble-slim
 
-RUN apt-get update && apt-get install -y \
-    libsqlite3-0 \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libsqlite3-0 && rm -rf /var/lib/apt/lists/*
+
+# Copy the custom sqlite3 from builder (with SQLITE_ENABLE_SNAPSHOT)
+COPY --from=builder /usr/lib/*-linux-gnu/libsqlite3* /usr/lib/
 
 WORKDIR /app
-COPY --from=builder /app/.build/release/AgentsBoardServer /usr/local/bin/agentsboard-server
+# Binary path includes architecture triple on Linux
+COPY --from=builder /app/.build/*-unknown-linux-gnu/release/AgentsBoardServer /usr/local/bin/agentsboard-server
 
 EXPOSE 19850
+
+ENV AGENTSBOARD_HOST=0.0.0.0
 
 ENTRYPOINT ["agentsboard-server"]
