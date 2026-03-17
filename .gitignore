@@ -18,12 +18,34 @@ DerivedData/
 *.dSYM
 timeline.xctimeline
 playground.xcworkspace
+
+# Build artifacts
+/build/
 *.dmg
+*.pkg
+*.zip
+
+# SQLite source (downloaded during Docker build)
+sqlite-autoconf-*/
+sqlite-autoconf-*.tar.gz*
 
 # Docusaurus
 website/node_modules/
 website/build/
 website/.docusaurus/
+
+# Web frontend
+web/node_modules/
+web/dist/
+
+# Tauri
+tauri/target/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
 
 # Claude
 .claude/
