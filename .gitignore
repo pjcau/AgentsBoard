@@ -47,5 +47,8 @@ tauri/target/
 *.swp
 *~
 
+# Tauri build output
+tauri/build/
+
 # Claude
 .claude/

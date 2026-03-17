@@ -2,15 +2,14 @@
   "$schema": "https://raw.githubusercontent.com/nicedoc/tauri-conf/main/schema.json",
   "productName": "AgentsBoard",
   "version": "0.8.0",
-  "identifier": "com.agentsboard.app",
+  "identifier": "com.agentsboard.desktop",
   "build": {
     "frontendDist": "../web/dist",
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": "cd ../web && npm run dev",
-    "beforeBuildCommand": "cd ../web && npm run build"
+    "beforeBuildCommand": ""
   },
   "app": {
-    "title": "AgentsBoard",
     "windows": [
       {
         "title": "AgentsBoard",
