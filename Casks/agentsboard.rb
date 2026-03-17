@@ -4,7 +4,7 @@ cask "agentsboard" do
   version "0.8.0"
   sha256 "7cfd4d85bf9bdeef70c2bedec8fb836845f435c5738e4a53a3b9164b94f771eb"
 
-  url "https://github.com/pjcau/AgentsBoard/releases/download/v#{version}/AgentsBoard-#{version}.zip"
+  url "https://github.com/pjcau/AgentsBoard/releases/download/v#{version}/AgentsBoard-#{version}-macos.zip"
   name "AgentsBoard"
   desc "Fleet management dashboard for AI coding agents"
   homepage "https://github.com/pjcau/AgentsBoard"
