@@ -8,12 +8,13 @@ set(CMAKE_AUTOMOC ON)
 # Find Qt6
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Widgets)
 
-# Path to Swift Core FFI header and library
-set(CORE_FFI_INCLUDE "${CMAKE_SOURCE_DIR}/../Sources/CoreFFI/include")
-
-# On Linux: .build/release/libAgentsBoardCoreFFI.so
-# On Windows: .build/release/AgentsBoardCoreFFI.dll
-set(CORE_FFI_LIB_DIR "${CMAKE_SOURCE_DIR}/../.build/release")
+# Path to Swift Core FFI header and library (overridable via -D)
+if(NOT DEFINED CORE_FFI_INCLUDE)
+    set(CORE_FFI_INCLUDE "${CMAKE_SOURCE_DIR}/../Sources/CoreFFI/include")
+endif()
+if(NOT DEFINED CORE_FFI_LIB_DIR)
+    set(CORE_FFI_LIB_DIR "${CMAKE_SOURCE_DIR}/../.build/release")
+endif()
 
 # Declare the imported Swift Core library
 add_library(agentsboard_core SHARED IMPORTED)
