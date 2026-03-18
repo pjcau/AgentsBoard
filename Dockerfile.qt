@@ -26,9 +26,8 @@ COPY Package.swift Package.resolved* ./
 COPY Sources/ Sources/
 COPY Tests/ Tests/
 
-# Build CoreFFI as dynamic library (with Swift runtime statically linked)
-RUN swift build --product AgentsBoardCoreFFI -c release \
-    --static-swift-stdlib
+# Build CoreFFI as dynamic library
+RUN swift build --product AgentsBoardCoreFFI -c release
 
 # --- Stage 2: Build Qt App ---
 FROM ubuntu:24.04 AS qt-builder
@@ -43,6 +42,9 @@ WORKDIR /app
 
 # Copy Swift Core shared library and headers
 COPY --from=swift-builder /app/.build/release/libAgentsBoardCoreFFI.so /usr/local/lib/
+# Copy Swift runtime libraries needed by CoreFFI
+COPY --from=swift-builder /usr/lib/swift/linux/*.so /usr/lib/
+COPY --from=swift-builder /usr/lib/swift/linux/x86_64/*.so /usr/lib/
 COPY Sources/CoreFFI/include/ /usr/local/include/
 RUN ldconfig
 
@@ -78,6 +80,7 @@ RUN mkdir -p deb/DEBIAN deb/usr/bin deb/usr/lib deb/usr/share/applications
 
 COPY --from=qt-builder /app/qt/build/agentsboard-qt deb/usr/bin/
 COPY --from=swift-builder /app/.build/release/libAgentsBoardCoreFFI.so deb/usr/lib/
+COPY --from=swift-builder /usr/lib/swift/linux/*.so deb/usr/lib/
 COPY --from=swift-builder /usr/lib/*-linux-gnu/libsqlite3.so* deb/usr/lib/
 COPY qt/packaging/linux/agentsboard.desktop deb/usr/share/applications/
 
