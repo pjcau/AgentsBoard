@@ -1,0 +1,147 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  # macOS — Build .app bundle + zip
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build release
+        run: bash scripts/bundle.sh "${GITHUB_REF_NAME#v}"
+
+      - name: Create macOS zip
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cd build
+          COPYFILE_DISABLE=1 /usr/bin/zip -r -X "../AgentsBoard-${VERSION}-macos.zip" AgentsBoard.app
+
+      - name: Create Homebrew tarball
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p /tmp/ab-brew/bin
+          cp .build/release/AgentsBoard /tmp/ab-brew/bin/
+          tar czf "AgentsBoard-${VERSION}-macos-arm64.tar.gz" -C /tmp/ab-brew .
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: |
+            AgentsBoard-*-macos.zip
+            AgentsBoard-*-macos-arm64.tar.gz
+
+  # Linux — Build Qt desktop .deb (x86_64)
+  linux-qt:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Qt .deb package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          docker build -f Dockerfile.qt \
+            --target=package \
+            --build-arg VERSION="${VERSION}" \
+            --build-arg ARCH=amd64 \
+            --output=release-artifacts .
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: release-artifacts/*.deb
+
+  # Linux — Build server standalone binary
+  linux-server:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build server binary
+        run: |
+          docker build -t agentsboard-server .
+          docker create --name ab-extract agentsboard-server
+          docker cp ab-extract:/usr/local/bin/agentsboard-server ./agentsboard-server-linux-amd64
+          docker rm ab-extract
+          VERSION="${GITHUB_REF_NAME#v}"
+          tar czf "AgentsBoard-${VERSION}-linux-amd64.tar.gz" agentsboard-server-linux-amd64
+
+      - name: Upload server artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-artifacts
+          path: AgentsBoard-*-linux-amd64.tar.gz
+
+  # Create GitHub Release with all artifacts
+  release:
+    needs: [macos, linux-qt, linux-server]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: find artifacts -type f | sort
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            NOTES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
+          else
+            NOTES=$(git log --pretty=format:"- %s" --no-merges -20)
+          fi
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            artifacts/* \
+            --title "AgentsBoard ${VERSION}" \
+            --notes "## What's New
+
+          ${{ steps.changelog.outputs.notes }}
+
+          ## Installation
+
+          ### macOS (Homebrew)
+          \`\`\`bash
+          brew tap pjcau/agentsboard
+          brew install --cask agentsboard
+          \`\`\`
+
+          ### macOS (Manual)
+          Download \`AgentsBoard-${VERSION}-macos.zip\`, unzip, and drag to Applications.
+
+          ### Linux (Qt Desktop)
+          \`\`\`bash
+          sudo dpkg -i agentsboard-desktop_${VERSION}_amd64.deb
+          \`\`\`
+
+          ### Linux (Server Only)
+          \`\`\`bash
+          tar xzf AgentsBoard-${VERSION}-linux-amd64.tar.gz
+          ./agentsboard-server-linux-amd64
+          \`\`\`
+
+          > **macOS Note:** If macOS blocks the app, go to System Settings > Privacy & Security > Open Anyway, or run: \`xattr -cr /Applications/AgentsBoard.app\`
+          "
