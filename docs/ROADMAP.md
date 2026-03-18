@@ -771,6 +771,7 @@ Obiettivo: drag-and-drop, cross-agent context, performance optimization, packagi
 
 | 21 | Testing | E2E sandboxed execution | 21.1, 21.2 |
 | 22 | Performance | Metal viewport scissoring for 100+ sessions | 22.1 |
+| 23 | Qt Desktop | Qt project scaffold, CoreFFI, Qt bindings, UI, terminal, packaging | 23.1–23.6 |
 
 ### Sprint 21 — E2E Test Sandbox
 
@@ -788,5 +789,31 @@ Obiettivo: drag-and-drop, cross-agent context, performance optimization, packagi
 **Agent**: `macos-core`
 **Description**: Bridge SwiftTerm's Terminal buffer (getCharData/getLine) into TerminalGridSnapshot, then render all sessions in a single MTKView using MetalRenderer's existing viewport scissoring. Zero NSView per session — pure GPU rendering for 100+ concurrent sessions. This is the migration path from SwiftTerm → Metal for the session grid.
 
-**Totale: 22 sprint**
-**Totale step: 46 skill/feature deliverables**
+### Sprint 23 — Qt Desktop App (Linux + Windows)
+
+#### Step 23.1 — `qt-project-scaffold`
+**Agent**: `qt-desktop`
+**Description**: Create `qt/` directory with CMakeLists.txt, `src/main.cpp`, and a minimal QML window that displays "AgentsBoard" title. CMake must find Qt6 and link the Swift Core shared library. Verify builds on Linux with cmake + ninja.
+
+#### Step 23.2 — `core-ffi-layer`
+**Agent**: `backend-core`
+**Description**: Create `Sources/CoreFFI/` module with `@_cdecl` Swift function exports and `include/agentsboard.h` C header. Expose lifecycle (create/destroy), fleet stats, session CRUD, state queries, cost stats, config loading, and callback registration. All pointers are opaque handles — no Swift types leak to C.
+
+#### Step 23.3 — `qt-api-binding`
+**Agent**: `qt-desktop`
+**Description**: Create `CoreBridge.h/cpp` — C++ RAII wrapper classes over the C FFI. ABCore becomes a C++ class with proper constructor/destructor. Create `FleetModel` (QAbstractListModel) and `SessionModel` (QObject) that expose Core data to QML via Qt properties and roles.
+
+#### Step 23.4 — `qt-fleet-session-ui`
+**Agent**: `qt-desktop`
+**Description**: QML views for FleetOverview (sorted cards grid), SessionList (sidebar), and SessionCard (state indicator, provider icon, cost, name). All data sourced from FleetModel/SessionModel via CoreBridge. Match the look and feel of the SwiftUI version.
+
+#### Step 23.5 — `qt-terminal-widget`
+**Agent**: `qt-desktop`
+**Description**: Terminal rendering using QQuickPaintedItem or QQuickItem with custom OpenGL. PTY management via C FFI callbacks (ab_set_session_callback). VT parsing happens in Swift Core — Qt only renders the character grid and handles keyboard input.
+
+#### Step 23.6 — `qt-packaging`
+**Agent**: `devops`
+**Description**: Package Qt app for distribution: `.deb` (Debian/Ubuntu), `.rpm` (Fedora), `.msi` (Windows), AppImage (Linux portable). Create `qt/packaging/` with platform-specific config. Dockerfile for reproducible Linux builds. GitHub Actions for CI.
+
+**Totale: 23 sprint**
+**Totale step: 52 skill/feature deliverables**

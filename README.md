@@ -5,15 +5,15 @@
 <h1 align="center">AgentsBoard</h1>
 
 <p align="center">
-  <strong>AI Agent Mission Control for macOS</strong>
+  <strong>AI Agent Mission Control for Desktop</strong>
 </p>
 
 <p align="center">
-  A native macOS application for monitoring, managing, and orchestrating multiple AI coding agents from a single high-performance control surface.
+  A native desktop application for monitoring, managing, and orchestrating multiple AI coding agents from a single high-performance control surface.
 </p>
 
 <p align="center">
-  Built with Metal GPU rendering. Designed for developers who run Claude Code, Codex, Aider, and Gemini in parallel.
+  macOS (SwiftUI + Metal) | Linux & Windows (Qt 6.5+ via C FFI). Designed for developers who run Claude Code, Codex, Aider, and Gemini in parallel.
 </p>
 
 <p align="center">
@@ -100,22 +100,60 @@ Running multiple AI coding agents is the new normal. But today's tools force you
 
 ## Requirements
 
+### macOS
 - macOS 14 (Sonoma) or later
 - Metal-capable GPU (all Macs since 2012)
+
+### Linux
+- Ubuntu 22.04+ / Fedora 38+ (or equivalent)
+- Qt 6.5+ runtime libraries
+- Swift 5.10+ runtime
+
+### Windows
+- Windows 10 or later
+- MSVC 2022 Build Tools
+- Qt 6.5+ runtime libraries
+- Swift 5.10+ runtime
+
+### All platforms
 - At least one supported AI agent CLI installed
 
 ## Install
 
+### macOS (Homebrew)
 ```bash
 brew tap pjcau/agentsboard
 brew install --cask agentsboard
 ```
 
-To build from source instead:
+### Linux (.deb)
+```bash
+# Download from Releases
+sudo dpkg -i agentsboard_0.9.0_amd64.deb
+```
+
+### Windows (.msi)
+Download the `.msi` installer from [Releases](https://github.com/pjcau/AgentsBoard/releases).
+
+### Build from source (macOS)
 ```bash
 git clone https://github.com/pjcau/AgentsBoard.git
 cd AgentsBoard
 bash build.sh && open build/AgentsBoard.app
+```
+
+### Build from source (Linux/Windows — Qt)
+```bash
+git clone https://github.com/pjcau/AgentsBoard.git
+cd AgentsBoard
+
+# Build Swift Core as shared library
+swift build -c release --product AgentsBoardCore
+
+# Build Qt app
+cd qt && mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
 ```
 
 ## Project Configuration
@@ -196,7 +234,9 @@ Sources/
 │   ├── Rendering/    # Metal renderer, glyph atlas
 │   ├── Terminal/     # PTY, VT parsing, session lifecycle
 │   └── Theme/        # Theme engine, built-in themes
-├── UI/               # SwiftUI views + AppKit bridges — 23 modules
+├── CoreFFI/          # C FFI bridge — @_cdecl exports + agentsboard.h
+├── Server/           # HTTP + WebSocket API (optional, for CLI/automation)
+├── UI/               # SwiftUI views + AppKit bridges — 23 modules (macOS)
 │   ├── SessionMonitor/   # Session cards with SwiftTerm terminal
 │   ├── Launcher/         # Multi-session launcher + Smart Mode + Clone
 │   ├── Sidebar/          # Session list, worktree manager, editing
@@ -206,7 +246,18 @@ Sources/
 │   ├── DiffReview/       # Split-pane diff viewer
 │   ├── Search/           # Global search
 │   ├── ... and 15 more   # Editor, FileExplorer, Themes, VimMode, etc.
-└── CLI/              # agentsctl command-line tool
+├── CLI/              # agentsctl command-line tool
+└── qt/               # Qt 6.5+ desktop app (Linux + Windows)
+    ├── src/              # C++ bridge, Qt models
+    └── qml/              # QML views
+```
+
+**Cross-platform model:**
+```
+macOS:   SwiftUI ──(in-process)──► Core Swift
+Linux:   Qt/C++ ──(C FFI)──────► libcore.so (Swift)
+Windows: Qt/C++ ──(C FFI)──────► core.dll  (Swift)
+CLI:     agentsctl ──(HTTP)────► Server ──► Core Swift (optional)
 ```
 
 **Design principles:**

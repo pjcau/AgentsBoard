@@ -6,18 +6,19 @@
 ┌──────────────────────────────────────────────┐
 │            AgentsBoardCore (Swift)            │
 │   Agent│Fleet│Cost│MCP│Hooks│Config│Activity  │
-│                                              │
-│   AgentsBoardServer (Hummingbird HTTP+WS)    │
-│         REST /api/v1/* + WebSocket           │
-│              localhost:19850                  │
-└──────────────────┬───────────────────────────┘
-        ┌──────────┼──────────┬──────────┐
-        ▼          ▼          ▼          ▼
-   SwiftUI      Tauri       Web       agentsctl
-   (macOS)   (Linux+Win)  (browser)    (CLI)
+└───────┬──────────────┬───────────────┬───────┘
+        │              │               │
+   (in-process)    (C FFI)         (HTTP)
+        │              │               │
+        ▼              ▼               ▼
+     SwiftUI        Qt/C++        agentsctl
+     (macOS)    (Linux+Windows)     (CLI)
 ```
 
-## macOS (Native)
+All desktop frontends link Core Swift **in-process** for maximum performance.
+The HTTP server is optional — used only by `agentsctl` CLI and external automation tools.
+
+## macOS (Native SwiftUI)
 
 Full SwiftUI + AppKit + Metal experience.
 
@@ -33,68 +34,74 @@ open build/AgentsBoard.app
 swift test
 ```
 
-## Linux
+## Linux (Qt Desktop)
 
-Headless server + Tauri desktop app.
+Qt 6.5+ app linking Swift Core as `libagentsboard_core.so` via C FFI.
 
-### Option A: Docker
-
-```bash
-# Build
-docker compose run build
-
-# Run server
-docker compose up server
-
-# Test
-docker compose run test
-```
-
-### Option B: Native Swift
+### Prerequisites
 
 ```bash
-# Install Swift 5.10+ and SQLite
+# Ubuntu 22.04+
+sudo apt install qt6-base-dev qt6-declarative-dev cmake ninja-build
 sudo apt install libsqlite3-dev
 
-# Build server
-swift build --target AgentsBoardServer -c release
-
-# Run
-.build/release/AgentsBoardServer
+# Install Swift 5.10+
+# See https://www.swift.org/install/linux/
 ```
 
-### Option C: Tauri App
+### Build
 
 ```bash
-# Prerequisites: Node.js 20+, Rust, Tauri CLI
-cd web && npm ci && cd ..
-cd tauri && cargo tauri build
+# Step 1: Build Swift Core as shared library
+swift build -c release --product AgentsBoardCore
+
+# Step 2: Build Qt app
+cd qt
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -G Ninja
+ninja
+
+# Step 3: Run
+./agentsboard-qt
 ```
 
-## Windows
-
-Via Tauri only.
+### Docker
 
 ```bash
-# Prerequisites: Node.js 20+, Rust, Visual Studio Build Tools
-cd web && npm ci && cd ..
-cd tauri && cargo tauri build
+docker compose run build    # Build Core + Qt
+docker compose up server    # Run HTTP server (optional)
 ```
 
-## Web (Browser)
+## Windows (Qt Desktop)
+
+Qt 6.5+ app linking Swift Core as `agentsboard_core.dll` via C FFI.
+
+### Prerequisites
+
+- Visual Studio 2022 Build Tools (MSVC)
+- Qt 6.5+ (install via Qt Online Installer)
+- Swift 5.10+ for Windows
+- CMake 3.21+
+
+### Build
 
 ```bash
-cd web
-npm install
-npm run dev     # Dev server at http://localhost:5173
-npm run build   # Production build to web/dist/
-```
+# Step 1: Build Swift Core as shared library
+swift build -c release --product AgentsBoardCore
 
-Requires AgentsBoardServer running on localhost:19850.
+# Step 2: Build Qt app
+cd qt
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --config Release
+
+# Step 3: Run
+.\Release\agentsboard-qt.exe
+```
 
 ## CLI (agentsctl)
 
-Works on all platforms — communicates via HTTP.
+Works on all platforms — communicates via HTTP with the optional server.
 
 ```bash
 # macOS
@@ -112,8 +119,7 @@ agentsctl cost
 ```bash
 ./scripts/dev.sh build    # Platform-aware build
 ./scripts/dev.sh test     # Platform-aware test
-./scripts/dev.sh server   # Start HTTP server
-./scripts/dev.sh web      # Start web dev server
-./scripts/dev.sh tauri    # Start Tauri dev
+./scripts/dev.sh server   # Start HTTP server (optional)
+./scripts/dev.sh qt       # Build and run Qt app
 ./scripts/dev.sh app      # Build macOS .app
 ```

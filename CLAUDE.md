@@ -9,13 +9,15 @@ AgentsBoard is a native macOS application that serves as a **Mission Control for
 ## Tech Stack
 
 - **Language**: Swift 5.10+
-- **UI Framework**: SwiftUI + AppKit
-- **Rendering**: Metal (GPU-accelerated terminal rendering)
+- **UI Framework (macOS)**: SwiftUI + AppKit
+- **UI Framework (Linux/Windows)**: Qt 6.5+ (C++17 / QML) via C FFI to Swift Core
+- **Rendering**: Metal (GPU-accelerated terminal rendering, macOS only)
 - **Terminal**: SwiftTerm (with libghostty-vt migration path)
 - **Config**: YAML (Yams)
 - **Persistence**: SQLite (GRDB.swift)
-- **Build**: Xcode / swift build
-- **Min target**: macOS 14 (Sonoma)
+- **Build (macOS)**: Xcode / swift build
+- **Build (Linux/Windows)**: CMake 3.21+ (Qt app) + swift build (Core library)
+- **Min target**: macOS 14 (Sonoma), Ubuntu 22.04, Windows 10
 
 ## SOLID Principles — Mandatory for ALL Code
 
@@ -111,7 +113,7 @@ Sources/
 │   └── Theme/        # Theme engine, built-in themes, hot-reload
 │                     # ThemeEngine, TerminalTheme, BuiltInTheme
 │                     # Platform: nsColor guarded behind #if canImport(AppKit)
-├── Server/           # HTTP + WebSocket API server (cross-platform)
+├── Server/           # HTTP + WebSocket API server (cross-platform, optional)
 │   ├── ServerMain.swift          # @main, Hummingbird entry point
 │   ├── ServerCompositionRoot.swift # Headless DI (no UI, NoOpNotifications)
 │   ├── APIServer.swift           # Route registration, app configuration
@@ -130,6 +132,11 @@ Sources/
 │       ├── FleetEventAdapter.swift
 │       ├── ActivityEventAdapter.swift
 │       └── CostEventAdapter.swift
+├── CoreFFI/          # C FFI bridge for Qt (future — Sprint 23.2)
+│   ├── CoreFFI.swift             # @_cdecl exports
+│   ├── include/
+│   │   └── agentsboard.h        # C header consumed by Qt/C++
+│   └── CallbackBridge.swift      # Swift→C→C++ callback management
 ├── UI/               # All SwiftUI views and AppKit bridges (macOS only)
 │   ├── SessionMonitor/   # Session cards, SwiftTerm terminal, RemixSheet
 │   ├── FleetOverview/    # Cross-project agent dashboard
@@ -156,12 +163,10 @@ Sources/
 │   ├── Simulator/        # iOS Simulator integration
 │   └── DiagramRenderer/  # Generic diagram rendering
 ├── CLI/              # agentsctl command-line control tool (HTTP client)
-├── web/              # React + TypeScript + Vite web frontend
-│   ├── src/api/      # Typed HTTP client + WebSocket
-│   ├── src/hooks/    # React hooks (useFleetStats, useSessions, useWebSocket)
-│   └── src/components/ # FleetOverview, SessionList, Terminal, ActivityLog, CostDashboard
-└── tauri/            # Tauri desktop app (Linux + Windows)
-    └── src/          # Rust: sidecar server management, system tray, IPC
+└── qt/               # Qt 6.5+ desktop app (Linux + Windows, future — Sprint 23)
+    ├── CMakeLists.txt            # Find Qt6, link libagentsboard_core
+    ├── src/                      # C++ bridge + Qt models
+    └── qml/                      # QML views
 ```
 
 ## Agent System — How to Work on This Project
@@ -225,25 +230,18 @@ This project is designed to be built by Claude with specialized sub-agents. Each
 - EventBroker is an actor for thread safety
 - ServerCompositionRoot mirrors App/CompositionRoot but headless (no UI, NoOpNotifications)
 
-#### 5. `web-frontend` — Web UI Agent
-**Domain**: React components, TypeScript API client, WebSocket hooks, xterm.js terminal
-**Files**: `web/`
-**Skills needed**: React 18, TypeScript, Vite, xterm.js, CSS
+#### 5. `qt-desktop` — Qt Desktop Agent
+**Domain**: Qt 6.5+ desktop app for Linux and Windows, C FFI bridge to Swift Core, QML views
+**Files**: `qt/`, `Sources/CoreFFI/`
+**Skills needed**: C++17, Qt 6.5 (Widgets + QML), CMake, C FFI
+**SOLID focus**: SRP — CoreBridge wraps FFI, models expose data, QML renders. DIP — Qt code depends on C API (agentsboard.h), never on Swift internals.
 **Rules**:
-- All types mirror Swift Codable DTOs in `api/types.ts`
-- HTTP client is typed and centralized in `api/client.ts`
-- WebSocket auto-reconnects with 3s backoff
-- xterm.js uses WebGL renderer when available
-- CSS variables for theming (mirrors Swift ThemeEngine colors)
-
-#### 6. `tauri-desktop` — Tauri Desktop Agent
-**Domain**: Tauri 2.0 app wrapping web frontend, sidecar server management, system tray
-**Files**: `tauri/`
-**Skills needed**: Rust, Tauri 2.0, IPC
-**Rules**:
-- NO Swift FFI — server is a sidecar process communicating via HTTP/WS
-- System tray shows fleet cost summary
-- IPC commands: get_server_status, restart_server
+- Qt app links libagentsboard_core directly (in-process, no HTTP)
+- CoreBridge.h/cpp wraps all C FFI calls into C++ RAII objects
+- QAbstractListModel subclasses for fleet/sessions (FleetModel, SessionModel)
+- QML for all views — no Qt Widgets for UI (except system tray)
+- System tray via QSystemTrayIcon
+- Packaging: .deb (Linux), .msi (Windows), AppImage (Linux portable)
 
 ### Cross-Cutting Rules (ALL agents must follow)
 
@@ -278,7 +276,7 @@ This project is designed to be built by Claude with specialized sub-agents. Each
 - **Font size shortcuts**: Cmd+= / Cmd+- / Cmd+0 to increase/decrease/reset terminal font size (8-28pt, persisted via @AppStorage).
 - **Resource links**: URLs detected in terminal output are shown in a collapsible Resources panel at the bottom of each session card, with context-aware icons (GitHub, docs, StackOverflow, npm, etc.).
 - **Clone & Launch**: Session launcher can clone a Git repository from URL (HTTPS or SSH) into a chosen directory, then auto-create a session with detected provider and repo name.
-- **Cross-platform (v0.8.0)**: Hybrid architecture — Swift Core as HTTP/WS service + pluggable UI. macOS: native SwiftUI. Linux/Windows: Tauri wrapping React web frontend. Browser: direct web app. All clients talk to `localhost:19850` REST + WebSocket API.
+- **Cross-platform (v0.9.0)**: Desktop-only architecture — Swift Core linked directly by all frontends. macOS: SwiftUI (in-process). Linux/Windows: Qt 6.5+ via C FFI (in-process). Server is optional, used only by CLI/agentsctl and external automation.
 
 ## Commands
 
@@ -305,17 +303,10 @@ swift run AgentsBoardServer
 ./scripts/dev.sh build    # Platform-aware build
 ./scripts/dev.sh test     # Platform-aware test
 ./scripts/dev.sh server   # Start HTTP server
-./scripts/dev.sh web      # Start web dev server (localhost:5173)
-./scripts/dev.sh tauri    # Start Tauri dev
+./scripts/dev.sh qt       # Build and run Qt app (Linux/Windows)
 ./scripts/dev.sh app      # Build macOS .app
 
 # Docker (Linux)
 docker compose run build
 docker compose up server
-
-# Web frontend
-cd web && npm install && npm run dev
-
-# Tauri desktop
-cd tauri && cargo tauri dev
 ```
