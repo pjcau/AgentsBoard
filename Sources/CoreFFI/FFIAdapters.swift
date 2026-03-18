@@ -4,10 +4,15 @@
 
 import Foundation
 import AgentsBoardCore
+#if canImport(Observation)
+import Observation
+#endif
 
 // MARK: - Session Adapter (headless, no SwiftTerm UI)
 
+#if canImport(Observation)
 @Observable
+#endif
 final class AgentSessionFFIAdapter: SessionEditable {
     let sessionId: String
     let terminal: TerminalSession
