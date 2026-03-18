@@ -75,6 +75,14 @@ target_link_libraries(agentsboard-qt PRIVATE
     agentsboard_core
 )
 
+# On Linux, CoreFFI.so depends on Swift runtime — link it explicitly
+if(NOT WIN32 AND NOT APPLE)
+    find_library(SWIFT_CORE swiftCore PATHS /usr/lib/swift/linux)
+    if(SWIFT_CORE)
+        target_link_libraries(agentsboard-qt PRIVATE ${SWIFT_CORE})
+    endif()
+endif()
+
 # Install
 install(TARGETS agentsboard-qt RUNTIME DESTINATION bin)
 install(FILES "${CORE_FFI_LIB_DIR}/libAgentsBoardCoreFFI.so" DESTINATION lib OPTIONAL)
