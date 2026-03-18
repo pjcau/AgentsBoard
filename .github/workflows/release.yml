@@ -21,6 +21,15 @@ jobs:
       - name: Select Swift 6
         run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
 
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-macos-release-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            spm-macos-release-
+            spm-macos-
+
       - name: Build release
         run: bash scripts/bundle.sh "${GITHUB_REF_NAME#v}"
 
@@ -51,14 +60,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: docker-qt-${{ hashFiles('Dockerfile.qt', 'Package.resolved') }}
+          restore-keys: docker-qt-
+
       - name: Build Qt .deb package
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          docker build -f Dockerfile.qt \
+          docker buildx build -f Dockerfile.qt \
             --target=package \
             --build-arg VERSION="${VERSION}" \
             --build-arg ARCH=amd64 \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
             --output=release-artifacts .
+
+      - name: Rotate cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -72,14 +98,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache-server
+          key: docker-server-${{ hashFiles('Dockerfile', 'Package.resolved') }}
+          restore-keys: docker-server-
+
       - name: Build server binary
         run: |
-          docker build -t agentsboard-server .
+          docker buildx build -f Dockerfile \
+            --cache-from type=local,src=/tmp/.buildx-cache-server \
+            --cache-to type=local,dest=/tmp/.buildx-cache-server-new,mode=max \
+            --load -t agentsboard-server .
           docker create --name ab-extract agentsboard-server
           docker cp ab-extract:/usr/local/bin/agentsboard-server ./agentsboard-server-linux-amd64
           docker rm ab-extract
           VERSION="${GITHUB_REF_NAME#v}"
           tar czf "AgentsBoard-${VERSION}-linux-amd64.tar.gz" agentsboard-server-linux-amd64
+
+      - name: Rotate cache
+        run: |
+          rm -rf /tmp/.buildx-cache-server
+          mv /tmp/.buildx-cache-server-new /tmp/.buildx-cache-server
 
       - name: Upload server artifact
         uses: actions/upload-artifact@v4

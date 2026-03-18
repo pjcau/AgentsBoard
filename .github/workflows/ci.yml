@@ -16,8 +16,17 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+
       - name: Select Swift 6
         run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-macos-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-macos-
+
       - name: Build all targets
         run: swift build
       - name: Run tests
@@ -31,8 +40,17 @@ jobs:
     container: swift:6.0-noble
     steps:
       - uses: actions/checkout@v4
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-linux-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-linux-
+
       - name: Install dependencies
         run: apt-get update && apt-get install -y libsqlite3-dev
+
       - name: Build Core + Server + CoreFFI
         run: swift build --target AgentsBoardCore --target AgentsBoardServer --target AgentsBoardCoreFFI
       - name: Run Core tests
