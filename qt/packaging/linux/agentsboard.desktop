@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=AgentsBoard
+Comment=AI Agent Mission Control
+Exec=agentsboard-qt
+Icon=agentsboard
+Terminal=false
+Type=Application
+Categories=Development;IDE;
+Keywords=AI;Agent;Claude;Codex;Aider;Gemini;Fleet;
