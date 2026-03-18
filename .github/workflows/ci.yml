@@ -9,9 +9,11 @@ on:
 jobs:
   # macOS — Full build (app + server + CLI + CoreFFI + tests)
   macos:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Select Swift 6
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
       - name: Build all targets
         run: swift build
       - name: Run tests
@@ -22,7 +24,7 @@ jobs:
   # Linux — Core + Server + CoreFFI (no UI)
   linux:
     runs-on: ubuntu-24.04
-    container: swift:5.10-noble
+    container: swift:6.0-noble
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
