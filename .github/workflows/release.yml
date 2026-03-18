@@ -134,7 +134,6 @@ jobs:
   # Create GitHub Release with all artifacts
   release:
     needs: [macos, linux-qt, linux-server]
-    if: ${{ !cancelled() && needs.macos.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

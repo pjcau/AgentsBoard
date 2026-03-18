@@ -42,7 +42,6 @@ WORKDIR /app
 
 # Copy Swift Core shared library and headers
 COPY --from=swift-builder /app/.build/release/libAgentsBoardCoreFFI.so /usr/local/lib/
-COPY --from=swift-builder /app/.build/release/libAgentsBoardCore.so /usr/local/lib/
 COPY Sources/CoreFFI/include/ /usr/local/include/
 RUN ldconfig
 
