@@ -78,6 +78,7 @@ let package = Package(
     products: macOSProducts + [
         .executable(name: "AgentsBoardServer", targets: ["AgentsBoardServer"]),
         .library(name: "AgentsBoardCore", targets: ["AgentsBoardCore"]),
+        .library(name: "AgentsBoardCoreFFI", type: .dynamic, targets: ["AgentsBoardCoreFFI"]),
     ],
     dependencies: swiftTermDependency + [
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.0"),
@@ -95,6 +96,17 @@ let package = Package(
             ],
             path: "Sources/Core",
             exclude: ["Rendering/Shaders.metal"],
+            swiftSettings: sharedSwiftSettings
+        ),
+
+        // C FFI bridge — dynamic library for Qt/C++ consumption
+        .target(
+            name: "AgentsBoardCoreFFI",
+            dependencies: [
+                "AgentsBoardCore",
+            ],
+            path: "Sources/CoreFFI",
+            exclude: ["include"],
             swiftSettings: sharedSwiftSettings
         ),
 
