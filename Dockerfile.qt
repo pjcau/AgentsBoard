@@ -26,8 +26,9 @@ COPY Package.swift Package.resolved* ./
 COPY Sources/ Sources/
 COPY Tests/ Tests/
 
-# Build CoreFFI as dynamic library
-RUN swift build --product AgentsBoardCoreFFI -c release
+# Build CoreFFI as dynamic library (with Swift runtime statically linked)
+RUN swift build --product AgentsBoardCoreFFI -c release \
+    --static-swift-stdlib
 
 # --- Stage 2: Build Qt App ---
 FROM ubuntu:24.04 AS qt-builder
