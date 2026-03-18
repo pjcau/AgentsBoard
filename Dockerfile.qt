@@ -40,9 +40,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy Swift Core shared library and headers
+# Copy Swift Core shared library, custom SQLite, and headers
 COPY --from=swift-builder /app/.build/release/libAgentsBoardCoreFFI.so /usr/local/lib/
-COPY --from=swift-builder /usr/lib/*-linux-gnu/libsqlite3.so* /usr/lib/
+COPY --from=swift-builder /usr/lib/*-linux-gnu/libsqlite3.so* /usr/lib/x86_64-linux-gnu/
 COPY Sources/CoreFFI/include/ /usr/local/include/
 RUN ldconfig
 
