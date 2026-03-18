@@ -49,7 +49,15 @@ jobs:
           restore-keys: spm-linux-
 
       - name: Install dependencies
-        run: apt-get update && apt-get install -y libsqlite3-dev
+        run: |
+          apt-get update && apt-get install -y libsqlite3-dev wget build-essential
+          wget -q "https://www.sqlite.org/2024/sqlite-autoconf-3460100.tar.gz"
+          tar xf sqlite-autoconf-3460100.tar.gz
+          cd sqlite-autoconf-3460100
+          CFLAGS="-DSQLITE_ENABLE_SNAPSHOT -O2" \
+            ./configure --prefix=/usr --libdir=/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH) --disable-static
+          make -j$(nproc) && make install
+          cd .. && rm -rf sqlite-autoconf-* && ldconfig
 
       - name: Build Core + Server + CoreFFI
         run: swift build --target AgentsBoardCore --target AgentsBoardServer --target AgentsBoardCoreFFI
