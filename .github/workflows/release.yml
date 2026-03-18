@@ -7,6 +7,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # macOS — Build .app bundle + zip
   macos:
@@ -86,6 +90,7 @@ jobs:
   # Create GitHub Release with all artifacts
   release:
     needs: [macos, linux-qt, linux-server]
+    if: ${{ !cancelled() && needs.macos.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
