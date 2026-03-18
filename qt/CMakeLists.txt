@@ -75,24 +75,16 @@ target_link_libraries(agentsboard-qt PRIVATE
     agentsboard_core
 )
 
-# On Linux, CoreFFI.so depends on Swift runtime transitively.
-# Use --start-group/--end-group to resolve circular deps between Swift libs,
-# and --no-as-needed so the linker doesn't drop swiftCore before resolving
-# symbols needed by libswiftObservation.so.
+# On Linux, CoreFFI.so depends on Swift runtime. Use swiftc as the linker
+# driver so it resolves all Swift runtime symbols automatically.
 if(NOT WIN32 AND NOT APPLE)
-    target_link_options(agentsboard-qt PRIVATE
-        "LINKER:--no-as-needed"
-        "LINKER:-rpath,/usr/lib/swift/linux"
-        "LINKER:--start-group"
-        -L/usr/lib/swift/linux
-        -lswiftCore
-        -lswiftObservation
-        -lswift_Concurrency
-        -ldispatch
-        -lBlocksRuntime
-        -lsqlite3
-        "LINKER:--end-group"
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/lib/swift/linux -lsqlite3")
+    set_target_properties(agentsboard-qt PROPERTIES LINKER_LANGUAGE CXX)
+    # Use swiftc as the linker — it knows how to resolve Swift runtime deps
+    set(CMAKE_CXX_LINK_EXECUTABLE
+        "swiftc -Xlinker -rpath -Xlinker /usr/lib/swift/linux <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
     )
+    target_link_libraries(agentsboard-qt PRIVATE sqlite3)
 endif()
 
 # Install
