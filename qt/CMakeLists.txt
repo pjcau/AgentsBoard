@@ -80,9 +80,10 @@ target_link_libraries(agentsboard-qt PRIVATE
 if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/lib/swift/linux -lsqlite3")
     set_target_properties(agentsboard-qt PROPERTIES LINKER_LANGUAGE CXX)
-    # Use swiftc as the linker — it knows how to resolve Swift runtime deps
+    # Use swiftc as the linker — it knows how to resolve Swift runtime deps.
+    # Skip <FLAGS> and <CMAKE_CXX_LINK_FLAGS> since swiftc doesn't understand g++ flags like -O3.
     set(CMAKE_CXX_LINK_EXECUTABLE
-        "swiftc -Xlinker -rpath -Xlinker /usr/lib/swift/linux <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
+        "swiftc -Xlinker -rpath -Xlinker /usr/lib/swift/linux <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
     )
     target_link_libraries(agentsboard-qt PRIVATE sqlite3)
 endif()
