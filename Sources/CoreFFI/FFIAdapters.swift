@@ -10,6 +10,7 @@ import AgentsBoardCore
 @Observable
 final class AgentSessionFFIAdapter: SessionEditable {
     let sessionId: String
+    let terminal: TerminalSession
     var agentInfo: AgentInfo?
     var state: AgentState = .working
     var totalCost: Decimal = 0
@@ -22,17 +23,44 @@ final class AgentSessionFFIAdapter: SessionEditable {
     var gitBranch: String?
     var isArchived: Bool = false
 
+    // Terminal callbacks for FFI
+    var dataCallback: ((Data) -> Void)?
+    var exitCallback: ((Int32) -> Void)?
+
     init(terminal: TerminalSession, name: String, projectPath: String?, command: String?) {
+        self.terminal = terminal
         self.sessionId = terminal.sessionId
         self.sessionName = name.isEmpty ? "Session" : name
         self.projectPath = projectPath
         self.launchCommand = command
         self.startTime = Date()
         self.lastEventTime = Date()
+
+        // Wire terminal data delegate
+        terminal.dataDelegate = self
     }
 
     func sendInput(_ text: String) {
-        // PTY input handled at terminal level
+        if let data = text.data(using: .utf8) {
+            terminal.sendInput(data)
+        }
+    }
+}
+
+extension AgentSessionFFIAdapter: TerminalDataReceiving {
+    func terminalSession(_ session: any TerminalSessionManaging, didReceiveData data: Data) {
+        // Append to output buffer
+        if let text = String(data: data, encoding: .utf8) {
+            outputText += text
+        }
+        lastEventTime = Date()
+        // Forward to FFI callback
+        dataCallback?(data)
+    }
+
+    func terminalSession(_ session: any TerminalSessionManaging, didExitWithCode code: Int32) {
+        state = .inactive
+        exitCallback?(code)
     }
 }
 

@@ -172,6 +172,52 @@ double ab_cost_get_session_total(ABCore core, const char* session_id);
 /// Get current burn rate (cost per hour).
 double ab_cost_get_burn_rate(ABCore core);
 
+// MARK: - Terminal Operations
+
+/// Launch the session's terminal process.
+/// command: shell command (e.g. "claude", "/bin/bash")
+/// workdir: working directory (may be NULL)
+/// Returns true if launch succeeded.
+bool ab_terminal_launch(ABSession session, const char* command, const char* workdir);
+
+/// Resize the terminal.
+void ab_terminal_resize(ABSession session, int32_t columns, int32_t rows);
+
+/// Check if the terminal process is running.
+bool ab_terminal_is_running(ABSession session);
+
+/// Terminate the terminal process.
+void ab_terminal_terminate(ABSession session);
+
+/// Terminal data callback: receives raw output bytes from PTY.
+/// data is borrowed; copy it if needed beyond the callback scope.
+typedef void (*ABTerminalDataCallback)(const char* session_id,
+                                       const uint8_t* data, int32_t len,
+                                       void* context);
+
+/// Terminal exit callback: receives session_id and exit code.
+typedef void (*ABTerminalExitCallback)(const char* session_id,
+                                       int32_t exit_code,
+                                       void* context);
+
+/// Register terminal output/exit callbacks for a session.
+void ab_terminal_set_callbacks(ABSession session,
+                                ABTerminalDataCallback on_data,
+                                ABTerminalExitCallback on_exit,
+                                void* context);
+
+// MARK: - Activity Log
+
+/// Get the number of activity events for a session (or all if session_id is NULL).
+int32_t ab_activity_count(ABCore core, const char* session_id);
+
+/// Get activity event details by index. Returns false if out of range.
+/// out_type: event type string (borrowed), out_details: details string (borrowed),
+/// out_timestamp: Unix timestamp, out_cost: cost delta (0 if none).
+bool ab_activity_get_event(ABCore core, const char* session_id, int32_t index,
+                            const char** out_type, const char** out_details,
+                            double* out_timestamp, double* out_cost);
+
 // MARK: - Version
 
 /// Get the library version string. Static string, never freed.

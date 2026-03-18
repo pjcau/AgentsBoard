@@ -31,6 +31,10 @@ final class ABCoreHandle {
     // Keep session handles alive
     var sessionHandles: [String: ABSessionHandle] = [:]
 
+    // Cached strings for activity log queries
+    var cachedActivityType: [CChar] = []
+    var cachedActivityDetails: [CChar] = []
+
     init() {
         let persistence = PersistenceFFI()
         self.persistence = persistence
@@ -396,6 +400,152 @@ public func ab_session_get_start_time(_ ptr: UnsafeMutableRawPointer?) -> Double
     guard let ptr else { return 0 }
     let handle = Unmanaged<ABSessionHandle>.fromOpaque(ptr).takeUnretainedValue()
     return handle.session.startTime.timeIntervalSince1970
+}
+
+// MARK: - Terminal Operations
+
+@_cdecl("ab_terminal_launch")
+public func ab_terminal_launch(
+    _ ptr: UnsafeMutableRawPointer?,
+    _ command: UnsafePointer<CChar>?,
+    _ workdir: UnsafePointer<CChar>?
+) -> Bool {
+    guard let ptr, let command else { return false }
+    let handle = Unmanaged<ABSessionHandle>.fromOpaque(ptr).takeUnretainedValue()
+    guard let adapter = handle.session as? AgentSessionFFIAdapter else { return false }
+
+    let cmdStr = String(cString: command)
+    let wdStr = workdir.map { String(cString: $0) }
+
+    do {
+        try adapter.terminal.launch(
+            command: cmdStr,
+            workingDirectory: wdStr
+        )
+        return true
+    } catch {
+        return false
+    }
+}
+
+@_cdecl("ab_terminal_resize")
+public func ab_terminal_resize(_ ptr: UnsafeMutableRawPointer?, _ columns: Int32, _ rows: Int32) {
+    guard let ptr else { return }
+    let handle = Unmanaged<ABSessionHandle>.fromOpaque(ptr).takeUnretainedValue()
+    guard let adapter = handle.session as? AgentSessionFFIAdapter else { return }
+    adapter.terminal.resize(columns: Int(columns), rows: Int(rows))
+}
+
+@_cdecl("ab_terminal_is_running")
+public func ab_terminal_is_running(_ ptr: UnsafeMutableRawPointer?) -> Bool {
+    guard let ptr else { return false }
+    let handle = Unmanaged<ABSessionHandle>.fromOpaque(ptr).takeUnretainedValue()
+    guard let adapter = handle.session as? AgentSessionFFIAdapter else { return false }
+    return adapter.terminal.isRunning
+}
+
+@_cdecl("ab_terminal_terminate")
+public func ab_terminal_terminate(_ ptr: UnsafeMutableRawPointer?) {
+    guard let ptr else { return }
+    let handle = Unmanaged<ABSessionHandle>.fromOpaque(ptr).takeUnretainedValue()
+    guard let adapter = handle.session as? AgentSessionFFIAdapter else { return }
+    adapter.terminal.terminate()
+}
+
+public typealias ABTerminalDataCallback = @convention(c) (
+    UnsafePointer<CChar>?,    // session_id
+    UnsafePointer<UInt8>?,    // data
+    Int32,                     // len
+    UnsafeMutableRawPointer?  // context
+) -> Void
+
+public typealias ABTerminalExitCallback = @convention(c) (
+    UnsafePointer<CChar>?,    // session_id
+    Int32,                     // exit_code
+    UnsafeMutableRawPointer?  // context
+) -> Void
+
+@_cdecl("ab_terminal_set_callbacks")
+public func ab_terminal_set_callbacks(
+    _ ptr: UnsafeMutableRawPointer?,
+    _ onData: ABTerminalDataCallback?,
+    _ onExit: ABTerminalExitCallback?,
+    _ context: UnsafeMutableRawPointer?
+) {
+    guard let ptr else { return }
+    let handle = Unmanaged<ABSessionHandle>.fromOpaque(ptr).takeUnretainedValue()
+    guard let adapter = handle.session as? AgentSessionFFIAdapter else { return }
+
+    if let onData {
+        adapter.dataCallback = { [weak adapter] data in
+            guard let adapter else { return }
+            let idBytes = Array(adapter.sessionId.utf8CString)
+            idBytes.withUnsafeBufferPointer { idPtr in
+                data.withUnsafeBytes { rawBuf in
+                    let bytes = rawBuf.bindMemory(to: UInt8.self)
+                    onData(idPtr.baseAddress, bytes.baseAddress, Int32(bytes.count), context)
+                }
+            }
+        }
+    }
+
+    if let onExit {
+        adapter.exitCallback = { [weak adapter] code in
+            guard let adapter else { return }
+            let idBytes = Array(adapter.sessionId.utf8CString)
+            idBytes.withUnsafeBufferPointer { idPtr in
+                onExit(idPtr.baseAddress, code, context)
+            }
+        }
+    }
+}
+
+// MARK: - Activity Log
+
+@_cdecl("ab_activity_count")
+public func ab_activity_count(_ ptr: UnsafeMutableRawPointer?, _ sessionId: UnsafePointer<CChar>?) -> Int32 {
+    guard let ptr else { return 0 }
+    let core = coreHandle(ptr)
+    if let sessionId {
+        let id = String(cString: sessionId)
+        return Int32(core.activityLogger.events(forSession: id).count)
+    }
+    return Int32(core.activityLogger.allEvents.count)
+}
+
+@_cdecl("ab_activity_get_event")
+public func ab_activity_get_event(
+    _ ptr: UnsafeMutableRawPointer?,
+    _ sessionId: UnsafePointer<CChar>?,
+    _ index: Int32,
+    _ outType: UnsafeMutablePointer<UnsafePointer<CChar>?>?,
+    _ outDetails: UnsafeMutablePointer<UnsafePointer<CChar>?>?,
+    _ outTimestamp: UnsafeMutablePointer<Double>?,
+    _ outCost: UnsafeMutablePointer<Double>?
+) -> Bool {
+    guard let ptr, let outType, let outDetails, let outTimestamp, let outCost else { return false }
+    let core = coreHandle(ptr)
+    let events: [ActivityEvent]
+    if let sessionId {
+        let id = String(cString: sessionId)
+        events = core.activityLogger.events(forSession: id)
+    } else {
+        events = core.activityLogger.allEvents
+    }
+    guard index >= 0, Int(index) < events.count else { return false }
+    let event = events[Int(index)]
+
+    // Store in cached strings on the core handle to keep them alive
+    let typeStr = event.eventType.rawValue
+    let detailsStr = event.details
+    core.cachedActivityType = Array(typeStr.utf8CString)
+    core.cachedActivityDetails = Array(detailsStr.utf8CString)
+
+    outType.pointee = core.cachedActivityType.withUnsafeBufferPointer { $0.baseAddress }
+    outDetails.pointee = core.cachedActivityDetails.withUnsafeBufferPointer { $0.baseAddress }
+    outTimestamp.pointee = event.timestamp.timeIntervalSince1970
+    outCost.pointee = event.cost.map { NSDecimalNumber(decimal: $0).doubleValue } ?? 0
+    return true
 }
 
 // MARK: - Enum Conversions
