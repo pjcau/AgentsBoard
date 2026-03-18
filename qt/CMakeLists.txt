@@ -38,6 +38,10 @@ set(SOURCES
     src/FleetModel.cpp
     src/SessionModel.h
     src/SessionModel.cpp
+    src/ActivityModel.h
+    src/ActivityModel.cpp
+    src/TerminalWidget.h
+    src/TerminalWidget.cpp
     src/SystemTray.h
     src/SystemTray.cpp
 )
@@ -54,6 +58,11 @@ qt_add_qml_module(agentsboard-qt
         qml/SessionCard.qml
         qml/SessionList.qml
         qml/Sidebar.qml
+        qml/ActivityLog.qml
+        qml/CostDashboard.qml
+        qml/Terminal.qml
+        qml/CommandPalette.qml
+        qml/DiffReview.qml
 )
 
 target_link_libraries(agentsboard-qt PRIVATE
@@ -67,6 +76,7 @@ target_link_libraries(agentsboard-qt PRIVATE
 
 # Install
 install(TARGETS agentsboard-qt RUNTIME DESTINATION bin)
+install(FILES "${CORE_FFI_LIB_DIR}/libAgentsBoardCoreFFI.so" DESTINATION lib OPTIONAL)
 
 # Copy shared library next to executable on build
 if(NOT WIN32)
