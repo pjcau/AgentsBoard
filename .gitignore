@@ -34,21 +34,15 @@ website/node_modules/
 website/build/
 website/.docusaurus/
 
-# Web frontend
-web/node_modules/
-web/dist/
-
-# Tauri
-tauri/target/
+# Qt build output
+qt/build/
+qt/CMakeUserPresets.json
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *~
-
-# Tauri build output
-tauri/build/
 
 # Claude
 .claude/
