@@ -75,17 +75,20 @@ target_link_libraries(agentsboard-qt PRIVATE
     agentsboard_core
 )
 
-# On Linux, CoreFFI.so depends on Swift runtime — link explicitly
+# On Linux, CoreFFI.so depends on Swift runtime — link explicitly.
+# Use -Wl,--no-as-needed to force all transitive Swift deps to load,
+# and -rpath so the runtime can find them.
 if(NOT WIN32 AND NOT APPLE)
     target_link_directories(agentsboard-qt PRIVATE
         /usr/lib/swift/linux
         /usr/lib/swift/linux/x86_64
     )
+    target_link_options(agentsboard-qt PRIVATE
+        "LINKER:--no-as-needed"
+        "LINKER:-rpath,/usr/lib/swift/linux"
+    )
     target_link_libraries(agentsboard-qt PRIVATE
         swiftCore
-        swiftSwiftOnoneSupport
-        swift_Concurrency
-        swiftGlibc
         sqlite3
     )
 endif()
