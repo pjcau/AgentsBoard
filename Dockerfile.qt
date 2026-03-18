@@ -1,10 +1,10 @@
 # AgentsBoard Qt Desktop — Multi-stage Linux build
 # Stage 1: Build Swift Core as shared library
-# Stage 2: Build Qt app linking Core
-# Stage 3: Package into minimal runtime image
+# Stage 2: Build Qt app linking Core (same Swift base for runtime libs)
+# Stage 3: Package into .deb
 #
 # Build: docker build -f Dockerfile.qt -t agentsboard-qt .
-# Extract: docker build -f Dockerfile.qt --target=export --output=build/qt .
+# Extract deb: docker build -f Dockerfile.qt --target=package --output=. .
 
 FROM swift:6.0-noble AS swift-builder
 
@@ -29,8 +29,8 @@ COPY Tests/ Tests/
 # Build CoreFFI as dynamic library
 RUN swift build --product AgentsBoardCoreFFI -c release
 
-# --- Stage 2: Build Qt App ---
-FROM ubuntu:24.04 AS qt-builder
+# --- Stage 2: Build Qt App (same Swift base so runtime libs are available) ---
+FROM swift:6.0-noble AS qt-builder
 
 RUN apt-get update && apt-get install -y \
     qt6-base-dev qt6-declarative-dev \
@@ -42,9 +42,7 @@ WORKDIR /app
 
 # Copy Swift Core shared library and headers
 COPY --from=swift-builder /app/.build/release/libAgentsBoardCoreFFI.so /usr/local/lib/
-# Copy Swift runtime libraries needed by CoreFFI
-COPY --from=swift-builder /usr/lib/swift/linux/*.so /usr/lib/
-COPY --from=swift-builder /usr/lib/swift/linux/x86_64/*.so /usr/lib/
+COPY --from=swift-builder /usr/lib/*-linux-gnu/libsqlite3.so* /usr/lib/
 COPY Sources/CoreFFI/include/ /usr/local/include/
 RUN ldconfig
 
@@ -59,13 +57,7 @@ RUN cd qt && mkdir build && cd build \
        -G Ninja \
     && ninja
 
-# --- Stage 3: Export ---
-FROM scratch AS export
-COPY --from=qt-builder /app/qt/build/agentsboard-qt /agentsboard-qt
-COPY --from=swift-builder /app/.build/release/libAgentsBoardCoreFFI.so /lib/
-COPY --from=swift-builder /usr/lib/*-linux-gnu/libsqlite3.so* /lib/
-
-# --- Stage 4: .deb package ---
+# --- Stage 3: .deb package ---
 FROM ubuntu:24.04 AS deb-builder
 
 RUN apt-get update && apt-get install -y dpkg-dev && rm -rf /var/lib/apt/lists/*
@@ -76,13 +68,17 @@ ARG ARCH=amd64
 WORKDIR /pkg
 
 # Package structure
-RUN mkdir -p deb/DEBIAN deb/usr/bin deb/usr/lib deb/usr/share/applications
+RUN mkdir -p deb/DEBIAN deb/usr/bin deb/usr/lib/agentsboard deb/usr/share/applications
 
 COPY --from=qt-builder /app/qt/build/agentsboard-qt deb/usr/bin/
-COPY --from=swift-builder /app/.build/release/libAgentsBoardCoreFFI.so deb/usr/lib/
-COPY --from=swift-builder /usr/lib/swift/linux/*.so deb/usr/lib/
-COPY --from=swift-builder /usr/lib/*-linux-gnu/libsqlite3.so* deb/usr/lib/
+COPY --from=swift-builder /app/.build/release/libAgentsBoardCoreFFI.so deb/usr/lib/agentsboard/
+COPY --from=swift-builder /usr/lib/*-linux-gnu/libsqlite3.so* deb/usr/lib/agentsboard/
 COPY qt/packaging/linux/agentsboard.desktop deb/usr/share/applications/
+
+# Wrapper script that sets LD_LIBRARY_PATH
+RUN mv deb/usr/bin/agentsboard-qt deb/usr/lib/agentsboard/agentsboard-qt \
+    && printf '#!/bin/sh\nexec /usr/lib/agentsboard/agentsboard-qt "$@"\n' > deb/usr/bin/agentsboard \
+    && chmod +x deb/usr/bin/agentsboard
 
 RUN cat > deb/DEBIAN/control <<EOF
 Package: agentsboard
