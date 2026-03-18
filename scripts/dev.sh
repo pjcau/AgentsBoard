@@ -18,8 +18,7 @@ COMMANDS:
   build    Build the project (macOS: swift build / Linux: docker compose)
   test     Run tests (macOS: swift test / Linux: docker compose)
   server   Start AgentsBoardServer on localhost:19850
-  web      Start web frontend dev server (cd web && npm run dev)
-  tauri    Start Tauri dev (server + tauri dev)
+  qt       Build and run Qt desktop app (Linux/Windows)
   app      Build macOS .app bundle (macOS only)
 
 EOF
@@ -49,19 +48,21 @@ cmd_server() {
     fi
 }
 
-cmd_web() {
-    cd "$PROJECT_DIR/web"
-    npm run dev
-}
+cmd_qt() {
+    # Build Swift Core as shared library
+    echo "Building Swift Core..."
+    swift build -c release --product AgentsBoardCore
 
-cmd_tauri() {
-    # Start server in background
-    cmd_server &
-    SERVER_PID=$!
-    trap "kill $SERVER_PID 2>/dev/null" EXIT
+    # Build Qt app
+    echo "Building Qt app..."
+    cd "$PROJECT_DIR/qt"
+    mkdir -p build
+    cd build
+    cmake .. -DCMAKE_BUILD_TYPE=Release
+    cmake --build .
 
-    cd "$PROJECT_DIR/tauri"
-    cargo tauri dev
+    echo "Running AgentsBoard Qt..."
+    ./agentsboard-qt
 }
 
 cmd_app() {
@@ -76,8 +77,7 @@ case "${1:-}" in
     build)  cmd_build ;;
     test)   cmd_test ;;
     server) cmd_server ;;
-    web)    cmd_web ;;
-    tauri)  cmd_tauri ;;
+    qt)     cmd_qt ;;
     app)    cmd_app ;;
     *)      usage ;;
 esac
