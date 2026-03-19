@@ -78,14 +78,14 @@ target_link_libraries(agentsboard-qt PRIVATE
 # On Linux, CoreFFI.so depends on Swift runtime. Use swiftc as the linker
 # driver so it resolves all Swift runtime symbols automatically.
 if(NOT WIN32 AND NOT APPLE)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/lib/swift/linux -lsqlite3")
+    # Disable CMake's automatic RPATH handling — swiftc doesn't understand -Wl,-rpath
+    set(CMAKE_SKIP_RPATH TRUE)
     set_target_properties(agentsboard-qt PROPERTIES LINKER_LANGUAGE CXX)
-    # Use swiftc as the linker — it knows how to resolve Swift runtime deps.
-    # Skip <FLAGS> and <CMAKE_CXX_LINK_FLAGS> since swiftc doesn't understand g++ flags like -O3.
+    # Use swiftc as the linker — it resolves Swift runtime deps automatically.
+    # -lstdc++ is needed because swiftc doesn't link C++ stdlib by default.
     set(CMAKE_CXX_LINK_EXECUTABLE
-        "swiftc -Xlinker -rpath -Xlinker /usr/lib/swift/linux <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
+        "swiftc -Xlinker -rpath -Xlinker /usr/lib/swift/linux -Xlinker -rpath -Xlinker /usr/local/lib -Xlinker -lstdc++ <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
     )
-    target_link_libraries(agentsboard-qt PRIVATE sqlite3)
 endif()
 
 # Install
