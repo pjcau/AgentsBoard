@@ -34,8 +34,10 @@ mkdir -p "$MACOS" "$RESOURCES"
 cp .build/release/AgentsBoard "$MACOS/"
 
 # Copy resource bundles (localization, etc.)
-# SPM resource_bundle_accessor looks for bundles next to the binary
-for bundle in .build/release/*.bundle; do
+# SPM resource_bundle_accessor looks for bundles next to the binary.
+# Only copy AgentsBoard* bundles — third-party bundles (NIO, GRDB)
+# contain only PrivacyInfo and break codesign.
+for bundle in .build/release/AgentsBoard_*.bundle; do
     if [ -d "$bundle" ]; then
         cp -R "$bundle" "$MACOS/"
     fi
