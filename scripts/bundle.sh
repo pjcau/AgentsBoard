@@ -34,11 +34,13 @@ mkdir -p "$MACOS" "$RESOURCES"
 cp .build/release/AgentsBoard "$MACOS/"
 
 # Copy resource bundles (localization, etc.)
-# SPM resource_bundle_accessor looks for bundles next to the binary.
-# Only copy AgentsBoard* bundles — third-party bundles (NIO, GRDB)
-# contain only PrivacyInfo and break codesign.
+# SPM resource_bundle_accessor checks Bundle.main.bundleURL which
+# for a .app is Contents/Resources/. Also copy next to the binary
+# as a fallback path.
 for bundle in .build/release/AgentsBoard_*.bundle; do
     if [ -d "$bundle" ]; then
+        bundlename=$(basename "$bundle")
+        cp -R "$bundle" "$RESOURCES/"
         cp -R "$bundle" "$MACOS/"
     fi
 done
@@ -101,7 +103,9 @@ else
     # Ad-hoc signing — changes Gatekeeper error from "damaged" to "unidentified developer"
     # Users can then approve via System Settings → Open Anyway
     echo "Ad-hoc signing..."
-    codesign --force --deep --sign - "$APP_DIR"
+    # Sign sub-bundles first, then the app
+    find "$APP_DIR" -name "*.bundle" -exec codesign --force --sign - {} \;
+    codesign --force --sign - "$APP_DIR"
     echo "Ad-hoc signed (users approve via System Settings → Open Anyway)"
 fi
 
