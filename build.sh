@@ -70,8 +70,8 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << PLIST
 </plist>
 PLIST
 
-# Ad-hoc code sign (required for macOS to trust the binary)
-codesign --force --deep --sign - "$APP_BUNDLE" 2>/dev/null
+# Ad-hoc code sign the binary only (resource bundles at root cause "unsealed contents" warning)
+codesign --force --sign - "$APP_BUNDLE/Contents/MacOS/$APP_NAME" 2>/dev/null || true
 
 echo "▸ Done! Launching $APP_NAME..."
 open "$APP_BUNDLE"

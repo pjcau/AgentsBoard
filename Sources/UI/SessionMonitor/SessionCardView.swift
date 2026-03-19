@@ -50,16 +50,19 @@ struct SessionCardView: View {
                 onEdit: { showingEdit = true }
             )
 
-            // Tab content
-            Group {
-                switch selectedTab {
-                case .terminal:
-                    terminalContent
-                case .activity:
+            // Tab content — terminal stays alive (hidden via opacity) to preserve PTY process
+            ZStack {
+                // Terminal is always in the view tree to keep PTY alive
+                terminalContent
+                    .opacity(selectedTab == .terminal ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .terminal)
+
+                // Overlay tabs are only created when selected
+                if selectedTab == .activity {
                     SessionActivityContent(viewModel: viewModel)
-                case .info:
+                } else if selectedTab == .info {
                     SessionInfoContent(viewModel: viewModel)
-                case .files:
+                } else if selectedTab == .files {
                     filesContent
                 }
             }
