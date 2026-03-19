@@ -34,9 +34,10 @@ mkdir -p "$MACOS" "$RESOURCES"
 cp .build/release/AgentsBoard "$MACOS/"
 
 # Copy resource bundles (localization, etc.)
+# SPM resource_bundle_accessor looks for bundles next to the binary
 for bundle in .build/release/*.bundle; do
     if [ -d "$bundle" ]; then
-        cp -R "$bundle" "$RESOURCES/"
+        cp -R "$bundle" "$MACOS/"
     fi
 done
 
