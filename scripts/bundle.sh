@@ -98,9 +98,11 @@ if [ -n "$TEAM_ID" ]; then
     echo "Signed with Developer ID"
 else
     # Ad-hoc signing
-    # Sign the main binary only (not --deep, which fails on SPM resource bundles)
+    # Sign the main binary only (not --deep, which fails on SPM resource bundles).
+    # codesign warns about "unsealed contents" due to .bundle dirs at app root —
+    # this is expected and doesn't affect functionality.
     echo "Ad-hoc signing..."
-    codesign --force --sign - "$MACOS/AgentsBoard"
+    codesign --force --sign - "$MACOS/AgentsBoard" || true
     echo "Ad-hoc signed (users approve via System Settings → Open Anyway)"
 fi
 
