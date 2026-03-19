@@ -2,7 +2,7 @@
 
 cask "agentsboard" do
   version "0.9.0"
-  sha256 "6b43e5934fc119fe6b9c0976423a9072ca5e465b289741c235edbb471aea61f7"
+  sha256 "8946dfb8e545e641873837111dbad828039b3195b7368919c7f6aed31ef32658"
 
   url "https://github.com/pjcau/AgentsBoard/releases/download/v#{version}/AgentsBoard-#{version}-macos.zip"
   name "AgentsBoard"
