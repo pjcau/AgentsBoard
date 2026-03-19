@@ -33,6 +33,13 @@ mkdir -p "$MACOS" "$RESOURCES"
 # Copy binary
 cp .build/release/AgentsBoard "$MACOS/"
 
+# Copy resource bundles (localization, etc.)
+for bundle in .build/release/*.bundle; do
+    if [ -d "$bundle" ]; then
+        cp -R "$bundle" "$RESOURCES/"
+    fi
+done
+
 # Copy app icon
 if [ -f "Sources/App/Resources/AppIcon.icns" ]; then
     cp "Sources/App/Resources/AppIcon.icns" "$RESOURCES/AppIcon.icns"
