@@ -1,0 +1,3 @@
+[submodule ".claude-kit"]
+	path = .claude-kit
+	url = https://github.com/pjcau/claude-kit.git
