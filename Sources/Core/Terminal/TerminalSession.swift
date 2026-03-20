@@ -19,6 +19,7 @@ public final class TerminalSession: TerminalSessionManaging {
     private var launchCommand: String?
     private var workingDirectory: String?
     private var environment: [String: String]?
+    private var readThread: Thread?
 
     // MARK: - Init
 
@@ -47,6 +48,45 @@ public final class TerminalSession: TerminalSessionManaging {
         )
         self.process = pty
         self.isRunning = true
+
+        // Start read loop for platforms without SwiftTerm (Linux)
+        #if !canImport(Darwin) || true
+        startReadLoop(fd: pty.fileDescriptor)
+        #endif
+    }
+
+    /// Reads PTY output in a background thread using blocking POSIX read().
+    private func startReadLoop(fd: Int32) {
+        let session = self
+        DispatchQueue.global(qos: .userInteractive).async {
+            let bufferSize = 4096
+            let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+            defer { buffer.deallocate() }
+
+            while session.isRunning {
+                #if canImport(Glibc)
+                let n = Glibc.read(fd, buffer, bufferSize)
+                #else
+                let n = Foundation.read(fd, buffer, bufferSize)
+                #endif
+                if n > 0 {
+                    let data = Data(bytes: buffer, count: n)
+                    let delegate = session.dataDelegate
+                    DispatchQueue.main.async {
+                        delegate?.terminalSession(session, didReceiveData: data)
+                    }
+                } else {
+                    // EOF or error — process exited
+                    let exitCode = session.process?.waitForExit() ?? 0
+                    let delegate = session.dataDelegate
+                    DispatchQueue.main.async {
+                        session.markExited()
+                        delegate?.terminalSession(session, didExitWithCode: exitCode)
+                    }
+                    break
+                }
+            }
+        }
     }
 
     public func sendInput(_ data: Data) {

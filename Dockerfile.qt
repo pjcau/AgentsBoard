@@ -35,7 +35,7 @@ FROM swift:6.0-noble AS qt-builder
 RUN apt-get update && apt-get install -y \
     qt6-base-dev qt6-declarative-dev \
     cmake ninja-build g++ \
-    libgl1-mesa-dev libsqlite3-dev \
+    libgl1-mesa-dev libsqlite3-dev patchelf \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -44,6 +44,8 @@ WORKDIR /app
 COPY --from=swift-builder /app/.build/release/libAgentsBoardCoreFFI.so /usr/local/lib/
 COPY --from=swift-builder /usr/lib/*-linux-gnu/libsqlite3.so* /usr/lib/x86_64-linux-gnu/
 COPY Sources/CoreFFI/include/ /usr/local/include/
+# Set proper SONAME so the linker records just the filename, not the absolute path
+RUN patchelf --set-soname libAgentsBoardCoreFFI.so /usr/local/lib/libAgentsBoardCoreFFI.so
 RUN ldconfig
 
 # Copy Qt sources
@@ -77,7 +79,7 @@ COPY qt/packaging/linux/agentsboard.desktop deb/usr/share/applications/
 
 # Wrapper script that sets LD_LIBRARY_PATH
 RUN mv deb/usr/bin/agentsboard-qt deb/usr/lib/agentsboard/agentsboard-qt \
-    && printf '#!/bin/sh\nexec /usr/lib/agentsboard/agentsboard-qt "$@"\n' > deb/usr/bin/agentsboard \
+    && printf '#!/bin/sh\nexport LD_LIBRARY_PATH=/usr/lib/agentsboard:${LD_LIBRARY_PATH}\nexec /usr/lib/agentsboard/agentsboard-qt "$@"\n' > deb/usr/bin/agentsboard \
     && chmod +x deb/usr/bin/agentsboard
 
 RUN cat > deb/DEBIAN/control <<EOF
@@ -92,6 +94,10 @@ Description: AI Agent Mission Control — Desktop
  Fleet management, code review, and orchestration for AI coding agents.
  Native Qt 6 desktop application with embedded Swift Core.
 EOF
+
+# Symlink CoreFFI to /usr/local/lib (binary has hardcoded RPATH from build)
+RUN mkdir -p deb/usr/local/lib \
+    && ln -sf /usr/lib/agentsboard/libAgentsBoardCoreFFI.so deb/usr/local/lib/libAgentsBoardCoreFFI.so
 
 RUN dpkg-deb --build deb agentsboard-desktop_${VERSION}_${ARCH}.deb
 

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import AgentsBoard.Terminal 1.0
 
 Rectangle {
     id: card
@@ -11,6 +12,7 @@ Rectangle {
     property int sessionProvider
     property double sessionCost
     property string sessionProjectPath
+    property string sessionCommand
 
     radius: 8
     color: "#2D2D2D"
@@ -109,22 +111,21 @@ Rectangle {
             font.pixelSize: 12
         }
 
-        // Terminal output preview (placeholder)
+        // Embedded terminal
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: "#1A1A1A"
             radius: 4
+            clip: true
 
-            Text {
+            TerminalWidget {
+                id: cardTerminal
                 anchors.fill: parent
-                anchors.margins: 8
-                text: "Terminal output will appear here"
-                color: "#555555"
-                font.pixelSize: 11
-                font.family: "monospace"
-                wrapMode: Text.Wrap
-                elide: Text.ElideRight
+                anchors.margins: 2
+                sessionId: card.sessionId
+                command: card.sessionCommand
+                workingDirectory: card.sessionProjectPath
             }
         }
     }

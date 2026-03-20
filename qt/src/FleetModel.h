@@ -19,6 +19,7 @@ public:
         CostRole,
         ProjectPathRole,
         StartTimeRole,
+        CommandRole,
     };
 
     explicit FleetModel(CoreBridge *bridge, QObject *parent = nullptr);

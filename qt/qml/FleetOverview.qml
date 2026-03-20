@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-
 Rectangle {
     color: "#1E1E1E"
 
@@ -54,14 +53,14 @@ Rectangle {
             color: "#3D3D3D"
         }
 
-        // Session cards grid
+        // Session cards grid — each card has its own embedded terminal
         GridView {
             id: gridView
             Layout.fillWidth: true
             Layout.fillHeight: true
             model: fleetModel
-            cellWidth: Math.max(350, width / Math.max(1, Math.floor(width / 400)))
-            cellHeight: 200
+            cellWidth: Math.max(500, width / Math.max(1, Math.floor(width / 600)))
+            cellHeight: 400
             clip: true
 
             delegate: SessionCard {
@@ -73,6 +72,7 @@ Rectangle {
                 sessionProvider: model.provider
                 sessionCost: model.cost
                 sessionProjectPath: model.projectPath
+                sessionCommand: model.command || "bash"
             }
 
             // Empty state

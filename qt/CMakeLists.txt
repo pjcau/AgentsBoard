@@ -26,6 +26,7 @@ if(WIN32)
 else()
     set_target_properties(agentsboard_core PROPERTIES
         IMPORTED_LOCATION "${CORE_FFI_LIB_DIR}/libAgentsBoardCoreFFI.so"
+        IMPORTED_SONAME "libAgentsBoardCoreFFI.so"
     )
 endif()
 target_include_directories(agentsboard_core INTERFACE "${CORE_FFI_INCLUDE}")
@@ -75,6 +76,11 @@ target_link_libraries(agentsboard-qt PRIVATE
     agentsboard_core
 )
 
+# forkpty is in libutil on Linux
+if(NOT WIN32 AND NOT APPLE)
+    target_link_libraries(agentsboard-qt PRIVATE util)
+endif()
+
 # On Linux, CoreFFI.so depends on Swift runtime. Use swiftc as the linker
 # driver so it resolves all Swift runtime symbols automatically.
 if(NOT WIN32 AND NOT APPLE)
@@ -83,8 +89,9 @@ if(NOT WIN32 AND NOT APPLE)
     set_target_properties(agentsboard-qt PROPERTIES LINKER_LANGUAGE CXX)
     # Use swiftc as the linker — it resolves Swift runtime deps automatically.
     # -lstdc++ is needed because swiftc doesn't link C++ stdlib by default.
+    # RPATH: look next to binary, then /usr/lib/agentsboard (installed .deb), then Swift runtime
     set(CMAKE_CXX_LINK_EXECUTABLE
-        "swiftc -Xlinker -rpath -Xlinker /usr/lib/swift/linux -Xlinker -rpath -Xlinker /usr/local/lib -Xlinker -lstdc++ <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
+        "swiftc -Xlinker -rpath -Xlinker '$$ORIGIN' -Xlinker -rpath -Xlinker /usr/lib/agentsboard -Xlinker -rpath -Xlinker /usr/lib/swift/linux -Xlinker -lstdc++ <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
     )
 endif()
 

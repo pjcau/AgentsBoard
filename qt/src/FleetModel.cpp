@@ -42,6 +42,10 @@ QVariant FleetModel::data(const QModelIndex &index, int role) const
     }
     case StartTimeRole:
         return ab_session_get_start_time(session);
+    case CommandRole: {
+        const char *cmd = ab_session_get_command(session);
+        return cmd ? QString::fromUtf8(cmd) : QString();
+    }
     default:
         return {};
     }
@@ -57,6 +61,7 @@ QHash<int, QByteArray> FleetModel::roleNames() const
         {CostRole,       "cost"},
         {ProjectPathRole,"projectPath"},
         {StartTimeRole,  "startTime"},
+        {CommandRole,    "command"},
     };
 }
 

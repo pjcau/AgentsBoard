@@ -151,9 +151,132 @@ public final class PTYProcess {
     }
 }
 
+#elseif canImport(Glibc)
+
+import Glibc
+
+public final class PTYProcess {
+
+    public let fileDescriptor: Int32
+    public let pid: pid_t
+    private(set) var isRunning: Bool = true
+    private(set) var isSuspended: Bool = false
+
+    init(
+        command: String,
+        workingDirectory: String? = nil,
+        environment: [String: String]? = nil,
+        size: TerminalSize = .default
+    ) throws {
+        var winSize = winsize(
+            ws_row: UInt16(size.rows),
+            ws_col: UInt16(size.columns),
+            ws_xpixel: 0,
+            ws_ypixel: 0
+        )
+
+        var masterFD: Int32 = -1
+        let childPid = forkpty(&masterFD, nil, nil, &winSize)
+
+        guard childPid >= 0 else {
+            throw PTYError.forkFailed(errno)
+        }
+
+        if childPid == 0 {
+            // Child process
+            if let workDir = workingDirectory {
+                chdir(workDir)
+            }
+
+            if let env = environment {
+                for (key, value) in env {
+                    setenv(key, value, 1)
+                }
+            }
+
+            setenv("TERM", "xterm-256color", 1)
+
+            let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/bash"
+            let args = [shell, "-c", command]
+            let cArgs = args.map { strdup($0) } + [nil]
+            execv(shell, cArgs)
+
+            _exit(127)
+        }
+
+        self.fileDescriptor = masterFD
+        self.pid = childPid
+        // Keep fd blocking — the read thread in TerminalSession uses blocking read()
+    }
+
+    deinit {
+        cleanup()
+    }
+
+    func write(_ data: Data) {
+        data.withUnsafeBytes { buffer in
+            guard let ptr = buffer.baseAddress else { return }
+            _ = Glibc.write(fileDescriptor, ptr, buffer.count)
+        }
+    }
+
+    func resize(columns: Int, rows: Int) {
+        var winSize = winsize(
+            ws_row: UInt16(rows),
+            ws_col: UInt16(columns),
+            ws_xpixel: 0,
+            ws_ypixel: 0
+        )
+        ioctl(fileDescriptor, UInt(TIOCSWINSZ), &winSize)
+    }
+
+    func suspend() {
+        guard isRunning, !isSuspended else { return }
+        kill(pid, SIGSTOP)
+        isSuspended = true
+    }
+
+    func resume() {
+        guard isRunning, isSuspended else { return }
+        kill(pid, SIGCONT)
+        isSuspended = false
+    }
+
+    func terminate() {
+        guard isRunning else { return }
+        if isSuspended {
+            kill(pid, SIGCONT)
+            isSuspended = false
+        }
+        kill(pid, SIGTERM)
+
+        DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak self] in
+            guard let self, self.isRunning else { return }
+            kill(self.pid, SIGKILL)
+        }
+    }
+
+    func waitForExit() -> Int32 {
+        var status: Int32 = 0
+        waitpid(pid, &status, 0)
+        isRunning = false
+        return (status >> 8) & 0xFF
+    }
+
+    private func cleanup() {
+        if isRunning {
+            if isSuspended { kill(pid, SIGCONT) }
+            kill(pid, SIGTERM)
+        }
+        close(fileDescriptor)
+        isRunning = false
+        isSuspended = false
+    }
+}
+
 #else
 
-// MARK: - PTY Process Stub (Linux — PTY managed by server-side tooling)
+// MARK: - PTY Process Stub (unsupported platforms)
 
 public final class PTYProcess {
     public let fileDescriptor: Int32 = -1

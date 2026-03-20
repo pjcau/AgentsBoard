@@ -2,8 +2,9 @@ services:
   build:
     build:
       context: .
-      target: builder
-    command: swift build --target AgentsBoardCore --target AgentsBoardServer
+      dockerfile: Dockerfile.qt
+      target: swift-builder
+    command: swift build --target AgentsBoardCore
     volumes:
       - .:/app
       - build-cache:/app/.build
@@ -11,19 +12,12 @@ services:
   test:
     build:
       context: .
-      target: builder
+      dockerfile: Dockerfile.qt
+      target: swift-builder
     command: swift test --filter AgentsBoardCoreTests
     volumes:
       - .:/app
       - build-cache:/app/.build
-
-  server:
-    build: .
-    ports:
-      - "19850:19850"
-    environment:
-      - AGENTSBOARD_HOST=0.0.0.0
-      - AGENTSBOARD_PORT=19850
 
 volumes:
   build-cache:

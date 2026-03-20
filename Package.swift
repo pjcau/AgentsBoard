@@ -96,7 +96,10 @@ let package = Package(
             ],
             path: "Sources/Core",
             exclude: ["Rendering/Shaders.metal"],
-            swiftSettings: sharedSwiftSettings
+            swiftSettings: sharedSwiftSettings,
+            linkerSettings: [
+                .linkedLibrary("util", .when(platforms: [.linux])),
+            ]
         ),
 
         // C FFI bridge — dynamic library for Qt/C++ consumption

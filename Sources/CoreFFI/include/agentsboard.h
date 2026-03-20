@@ -126,6 +126,9 @@ const char* ab_session_get_output(ABSession session);
 /// Get output length in bytes.
 int32_t ab_session_get_output_length(ABSession session);
 
+/// Get session launch command. Returns NULL if not set.
+const char* ab_session_get_command(ABSession session);
+
 /// Register a callback for session-specific events.
 void ab_session_set_callback(ABSession session, ABSessionCallback callback, void* context);
 

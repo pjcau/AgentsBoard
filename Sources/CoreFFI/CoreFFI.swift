@@ -210,6 +210,20 @@ public func ab_session_create(
     let handle = ABSessionHandle(adapter)
     core.sessionHandles[adapter.sessionId] = handle
 
+    // Auto-launch the PTY process
+    if !cmdStr.isEmpty {
+        do {
+            try terminal.launch(command: cmdStr, workingDirectory: wdStr)
+        } catch {
+            // Session created but PTY failed — log and continue
+            core.activityLogger.log(ActivityEvent(
+                sessionId: adapter.sessionId,
+                eventType: .error,
+                details: "PTY launch failed: \(error.localizedDescription)"
+            ))
+        }
+    }
+
     core.activityLogger.log(ActivityEvent(
         sessionId: adapter.sessionId,
         eventType: .stateChange,
@@ -258,6 +272,14 @@ public func ab_session_get_cost(_ ptr: UnsafeMutableRawPointer?) -> Double {
     guard let ptr else { return 0 }
     let handle = Unmanaged<ABSessionHandle>.fromOpaque(ptr).takeUnretainedValue()
     return NSDecimalNumber(decimal: handle.session.totalCost).doubleValue
+}
+
+@_cdecl("ab_session_get_command")
+public func ab_session_get_command(_ ptr: UnsafeMutableRawPointer?) -> UnsafePointer<CChar>? {
+    guard let ptr else { return nil }
+    let handle = Unmanaged<ABSessionHandle>.fromOpaque(ptr).takeUnretainedValue()
+    guard let cmd = handle.cachedCommand else { return nil }
+    return cmd.withUnsafeBufferPointer { $0.baseAddress }
 }
 
 @_cdecl("ab_session_get_output")
