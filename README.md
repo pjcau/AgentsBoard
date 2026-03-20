@@ -137,15 +137,17 @@ Download the `.msi` installer from [Releases](https://github.com/pjcau/AgentsBoa
 
 ### Build from source (macOS)
 ```bash
-git clone https://github.com/pjcau/AgentsBoard.git
+git clone --recurse-submodules https://github.com/pjcau/AgentsBoard.git
 cd AgentsBoard
+bash scripts/setup-claude-kit.sh   # Setup Claude Code skills, agents & hooks
 bash build.sh && open build/AgentsBoard.app
 ```
 
 ### Build from source (Linux/Windows — Qt)
 ```bash
-git clone https://github.com/pjcau/AgentsBoard.git
+git clone --recurse-submodules https://github.com/pjcau/AgentsBoard.git
 cd AgentsBoard
+bash scripts/setup-claude-kit.sh   # Setup Claude Code skills, agents & hooks
 
 # Build Swift Core as shared library
 swift build -c release --product AgentsBoardCore
@@ -265,6 +267,29 @@ CLI:     agentsctl ──(HTTP)────► Server ──► Core Swift (opti
 - @Observable state, direct mutation, no Combine
 - Core/ has zero UI dependencies — fully testable
 - Provider-agnostic: add new agents without touching UI
+
+## Claude Code Integration (claude-kit)
+
+AgentsBoard includes [claude-kit](https://github.com/pjcau/claude-kit) as a git submodule, providing portable Claude Code skills, agents, and hooks out of the box.
+
+After cloning, run the setup script to activate them:
+
+```bash
+bash scripts/setup-claude-kit.sh
+```
+
+This creates symlinks from `.claude/` to the submodule:
+
+| Type | Count | Examples |
+|------|-------|---------|
+| **Skills** | 26 | `/commit`, `/ship`, `/fix`, `/deploy`, `/analysis`, `/web-research`, ... |
+| **Agents** | 11 | `architect`, `code-reviewer`, `team-lead`, `test-runner`, `software-engineering`, ... |
+| **Hooks** | 3 | `prompt-skill-suggest`, `pre-safety-guard`, `post-edit-remind` |
+
+To update claude-kit to the latest version:
+```bash
+git submodule update --remote .claude-kit
+```
 
 ## Privacy
 
