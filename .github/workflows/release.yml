@@ -92,48 +92,9 @@ jobs:
           name: linux-artifacts
           path: release-artifacts/*.deb
 
-  # Linux — Build server standalone binary
-  linux-server:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache-server
-          key: docker-server-${{ hashFiles('Dockerfile', 'Package.resolved') }}
-          restore-keys: docker-server-
-
-      - name: Build server binary
-        run: |
-          docker buildx build -f Dockerfile \
-            --cache-from type=local,src=/tmp/.buildx-cache-server \
-            --cache-to type=local,dest=/tmp/.buildx-cache-server-new,mode=max \
-            --load -t agentsboard-server .
-          docker create --name ab-extract agentsboard-server
-          docker cp ab-extract:/usr/local/bin/agentsboard-server ./agentsboard-server-linux-amd64
-          docker rm ab-extract
-          VERSION="${GITHUB_REF_NAME#v}"
-          tar czf "AgentsBoard-${VERSION}-linux-amd64.tar.gz" agentsboard-server-linux-amd64
-
-      - name: Rotate cache
-        run: |
-          rm -rf /tmp/.buildx-cache-server
-          mv /tmp/.buildx-cache-server-new /tmp/.buildx-cache-server
-
-      - name: Upload server artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-artifacts
-          path: AgentsBoard-*-linux-amd64.tar.gz
-
   # Create GitHub Release with all artifacts
   release:
-    needs: [macos, linux-qt, linux-server]
+    needs: [macos, linux-qt]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -186,12 +147,6 @@ jobs:
           ### Linux (Qt Desktop)
           \`\`\`bash
           sudo dpkg -i agentsboard-desktop_${VERSION}_amd64.deb
-          \`\`\`
-
-          ### Linux (Server Only)
-          \`\`\`bash
-          tar xzf AgentsBoard-${VERSION}-linux-amd64.tar.gz
-          ./agentsboard-server-linux-amd64
           \`\`\`
 
           > **macOS Note:** If macOS blocks the app, go to System Settings > Privacy & Security > Open Anyway, or run: \`xattr -cr /Applications/AgentsBoard.app\`
