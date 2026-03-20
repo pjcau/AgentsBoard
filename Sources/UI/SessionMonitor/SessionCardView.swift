@@ -50,11 +50,15 @@ struct SessionCardView: View {
                 onEdit: { showingEdit = true }
             )
 
-            // Tab content — terminal stays alive (hidden via opacity) to preserve PTY process
+            // Tab content — terminal stays alive (hidden via offset) to preserve PTY process.
+            // Using offset instead of opacity(0) prevents Metal/CALayer from stalling
+            // draw calls on hidden layers, which caused terminal content loss on tab switch.
             ZStack {
-                // Terminal is always in the view tree to keep PTY alive
+                // Terminal is always in the view tree to keep PTY alive.
+                // When not selected, we move it far offscreen (not opacity 0) so Metal
+                // keeps drawing and the CALayer stays active.
                 terminalContent
-                    .opacity(selectedTab == .terminal ? 1 : 0)
+                    .offset(y: selectedTab == .terminal ? 0 : 100_000)
                     .allowsHitTesting(selectedTab == .terminal)
 
                 // Overlay tabs are only created when selected
