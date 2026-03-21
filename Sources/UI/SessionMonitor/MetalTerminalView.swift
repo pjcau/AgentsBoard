@@ -39,8 +39,8 @@ struct MetalTerminalView: NSViewRepresentable {
         let mtkView = MTKView(frame: .zero, device: device)
         mtkView.colorPixelFormat = .bgra8Unorm
         mtkView.clearColor = MTLClearColor(red: 0.07, green: 0.07, blue: 0.07, alpha: 1.0)
-        mtkView.isPaused = false
-        mtkView.enableSetNeedsDisplay = false
+        mtkView.isPaused = true
+        mtkView.enableSetNeedsDisplay = true
         mtkView.preferredFramesPerSecond = 60
         mtkView.autoresizingMask = [.width, .height]
 
@@ -55,8 +55,10 @@ struct MetalTerminalView: NSViewRepresentable {
         container.addSubview(mtkView)
 
         // Layer 2: SwiftTerm terminal (invisible — handles PTY + keyboard input only)
-        let termView = LocalProcessTerminalView(frame: .zero)
+        let termView = NotifyingTerminalView(frame: .zero)
         termView.processDelegate = context.coordinator
+        termView.onChangeTarget = context.coordinator
+        termView.notifyUpdateChanges = true
         termView.autoresizingMask = [.width, .height]
 
         // SwiftTerm renders text (full unicode + colors), Metal renders cell backgrounds via GPU
@@ -117,15 +119,33 @@ struct MetalTerminalView: NSViewRepresentable {
 
     // MARK: - Coordinator (MTKViewDelegate + SwiftTerm bridge)
 
+    /// Subclass of LocalProcessTerminalView that notifies when terminal content changes,
+    /// enabling on-demand Metal rendering instead of continuous 60fps redraw.
+    class NotifyingTerminalView: LocalProcessTerminalView {
+        weak var onChangeTarget: Coordinator?
+
+        override func rangeChanged(source: TerminalView, startY: Int, endY: Int) {
+            super.rangeChanged(source: source, startY: startY, endY: endY)
+            onChangeTarget?.terminalContentDidChange()
+        }
+    }
+
     class Coordinator: NSObject, MTKViewDelegate, LocalProcessTerminalViewDelegate {
         var renderer: MetalRenderer?
         weak var mtkView: MTKView?
         weak var termView: LocalProcessTerminalView?
         var pendingStart: (shell: String, command: String, env: [String], workDir: String?)?
         let onProcessExit: ((Int32?) -> Void)?
+        private var previousGridHash: Int = 0
+        private var needsRedraw = true
 
         init(onProcessExit: ((Int32?) -> Void)?) {
             self.onProcessExit = onProcessExit
+        }
+
+        func terminalContentDidChange() {
+            needsRedraw = true
+            mtkView?.setNeedsDisplay(mtkView?.bounds ?? .zero)
         }
 
         // MARK: - MTKViewDelegate
@@ -152,6 +172,16 @@ struct MetalTerminalView: NSViewRepresentable {
             }
 
             let snapshot = Self.extractGrid(from: terminal, cols: cols, rows: rows)
+
+            // Skip render if grid content hasn't changed (byte-level hash)
+            let gridHash = snapshot.cells.withUnsafeBufferPointer { buf -> Int in
+                let raw = UnsafeRawBufferPointer(buf)
+                var hasher = Hasher()
+                hasher.combine(bytes: raw)
+                return hasher.finalize()
+            }
+            guard gridHash != previousGridHash else { return }
+            previousGridHash = gridHash
 
             // Build cursor position
             let cursorCol = terminal.buffer.x

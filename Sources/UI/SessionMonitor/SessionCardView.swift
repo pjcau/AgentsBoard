@@ -1118,9 +1118,11 @@ final class SessionCardViewModel {
             addActivity(icon: newState.activityIcon, color: newState.activityColor, detail: newState.rawValue.capitalized)
             lastState = newState
         }
-        state = newState
-        cost = Self.formatCost(session.totalCost)
-        duration = Self.formatDuration(since: session.startTime)
+        if state != newState { state = newState }
+        let newCost = Self.formatCost(session.totalCost)
+        if cost != newCost { cost = newCost }
+        let newDuration = Self.formatDuration(since: session.startTime)
+        if duration != newDuration { duration = newDuration }
     }
 
     private var lastState: AgentState = .inactive
@@ -1135,12 +1137,20 @@ final class SessionCardViewModel {
             addActivity(icon: newState.activityIcon, color: newState.activityColor, detail: newState.rawValue.capitalized)
             lastState = newState
         }
-        state = newState
-        cost = Self.formatCost(session.totalCost)
-        duration = Self.formatDuration(since: session.startTime)
-        lastOutput = session.outputText
-        gitBranch = session.gitBranch
-        detectedLinks = Self.extractLinks(from: lastOutput)
+        if state != newState { state = newState }
+        let newCost = Self.formatCost(session.totalCost)
+        if cost != newCost { cost = newCost }
+        let newDuration = Self.formatDuration(since: session.startTime)
+        if duration != newDuration { duration = newDuration }
+        let newOutput = session.outputText
+        if newOutput != lastOutput {
+            lastOutput = newOutput
+            detectedLinks = Self.extractLinks(from: newOutput)
+        }
+        let newBranch = session.gitBranch
+        if newBranch != gitBranch {
+            gitBranch = newBranch
+        }
     }
 
     func addActivity(icon: String, color: Color, detail: String) {
