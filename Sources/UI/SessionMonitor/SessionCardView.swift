@@ -50,18 +50,15 @@ struct SessionCardView: View {
                 onEdit: { showingEdit = true }
             )
 
-            // Tab content — terminal stays alive (hidden via offset) to preserve PTY process.
-            // Using offset instead of opacity(0) prevents Metal/CALayer from stalling
-            // draw calls on hidden layers, which caused terminal content loss on tab switch.
+            // Tab content — terminal stays at z-position 0 always to keep PTY alive.
+            // Overlay tabs sit on top with opaque backgrounds — no offset/clipped needed.
             ZStack {
-                // Terminal is always in the view tree to keep PTY alive.
-                // When not selected, we move it far offscreen (not opacity 0) so Metal
-                // keeps drawing and the CALayer stays active.
+                // Terminal is always in the view tree AND always at origin to keep
+                // PTY alive and Metal/CALayer rendering without interruption.
                 terminalContent
-                    .offset(y: selectedTab == .terminal ? 0 : 100_000)
                     .allowsHitTesting(selectedTab == .terminal)
 
-                // Overlay tabs are only created when selected
+                // Overlay tabs cover the terminal with opaque backgrounds
                 if selectedTab == .activity {
                     SessionActivityContent(viewModel: viewModel)
                 } else if selectedTab == .info {
@@ -71,7 +68,6 @@ struct SessionCardView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
 
             // Tab bar
             SessionTabBar(
@@ -304,14 +300,17 @@ struct SessionCardView: View {
 
     @ViewBuilder
     private var filesContent: some View {
-        if viewModel.workDir != nil, !viewModel.workDir!.isEmpty {
-            FileExplorerView(viewModel: fileVM)
-        } else {
-            Text(L10n.Terminal.noWorkdir)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        Group {
+            if viewModel.workDir != nil, !viewModel.workDir!.isEmpty {
+                FileExplorerView(viewModel: fileVM)
+            } else {
+                Text(L10n.Terminal.noWorkdir)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
+        .background(Color(nsColor: .textBackgroundColor))
     }
 }
 
@@ -362,7 +361,7 @@ struct SessionActivityContent: View {
                 }
             }
         }
-        .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
+        .background(Color(nsColor: .textBackgroundColor))
     }
 }
 
@@ -445,7 +444,7 @@ struct SessionInfoContent: View {
             }
             .padding(10)
         }
-        .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
+        .background(Color(nsColor: .textBackgroundColor))
     }
 
     private var stateColor: Color {

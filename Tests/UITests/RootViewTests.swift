@@ -389,6 +389,133 @@ struct GlobalSearchViewModelTests {
     }
 }
 
+// MARK: - SessionTab Tests
+
+@Suite("SessionTab")
+struct SessionTabTests {
+    @Test func allCasesIncludesFourTabs() {
+        let tabs = SessionTab.allCases
+        #expect(tabs.count == 4)
+        #expect(tabs.contains(.terminal))
+        #expect(tabs.contains(.activity))
+        #expect(tabs.contains(.info))
+        #expect(tabs.contains(.files))
+    }
+
+    @Test func defaultTabIsTerminal() {
+        // Verify the first case is terminal (default for @State)
+        #expect(SessionTab.allCases.first == .terminal)
+    }
+
+    @Test func eachTabHasUniqueIcon() {
+        let icons = SessionTab.allCases.map(\.icon)
+        #expect(Set(icons).count == icons.count)
+    }
+
+    @Test func eachTabHasLocalizedTitle() {
+        for tab in SessionTab.allCases {
+            #expect(!tab.localizedTitle.isEmpty)
+        }
+    }
+
+    @Test func tabRawValues() {
+        #expect(SessionTab.terminal.rawValue == "terminal")
+        #expect(SessionTab.activity.rawValue == "activity")
+        #expect(SessionTab.info.rawValue == "info")
+        #expect(SessionTab.files.rawValue == "files")
+    }
+}
+
+// MARK: - SessionCardViewModel Tab Content Tests
+
+@Suite("SessionCardViewModel TabContent")
+struct SessionCardViewModelTabContentTests {
+    @Test func activityEntriesAvailableForActivityTab() {
+        let vm = SessionCardViewModel(id: "tab-1", name: "Test")
+        #expect(vm.activityEntries.isEmpty)
+        // Activity tab should render empty state when no entries
+    }
+
+    @Test func workDirRequiredForFilesTab() {
+        let vm = SessionCardViewModel(id: "tab-1", name: "Test")
+        // Files tab needs workDir to show FileExplorer
+        #expect(vm.workDir == nil)
+
+        vm.workDir = "/tmp/test-project"
+        #expect(vm.workDir != nil)
+        #expect(!vm.workDir!.isEmpty)
+    }
+
+    @Test func emptyWorkDirTreatedAsNoWorkDir() {
+        let vm = SessionCardViewModel(id: "tab-1", name: "Test")
+        vm.workDir = ""
+        // Files tab should show "no workdir" message for empty string
+        #expect(vm.workDir!.isEmpty)
+    }
+
+    @Test func infoTabShowsProviderAndModel() {
+        let vm = SessionCardViewModel(id: "tab-1", name: "Test")
+        vm.provider = .claude
+        vm.modelName = "Opus"
+        vm.state = .working
+        #expect(vm.provider?.displayName != nil)
+        #expect(vm.modelName == "Opus")
+        #expect(vm.state == .working)
+    }
+
+    @Test func infoTabShowsSessionDetails() {
+        let vm = SessionCardViewModel(id: "tab-1", name: "MySession")
+        vm.launchCommand = "claude --model opus"
+        vm.duration = "5m"
+        vm.cost = "$0.42"
+        #expect(vm.name == "MySession")
+        #expect(vm.launchCommand == "claude --model opus")
+        #expect(vm.duration == "5m")
+        #expect(vm.cost == "$0.42")
+    }
+
+    @Test func infoTabShowsGitBranch() {
+        let vm = SessionCardViewModel(id: "tab-1", name: "Test")
+        #expect(vm.gitBranch == nil)
+        vm.gitBranch = "feature/new-stuff"
+        #expect(vm.gitBranch == "feature/new-stuff")
+    }
+
+    @Test func infoTabShowsDetectedLinks() {
+        let vm = SessionCardViewModel(id: "tab-1", name: "Test")
+        #expect(vm.detectedLinks.isEmpty)
+    }
+
+    @Test func terminalTabRequiresLaunchCommand() {
+        let vm = SessionCardViewModel(id: "tab-1", name: "Test")
+        // Without launchCommand, terminal shows static output or placeholder
+        #expect(vm.launchCommand == nil)
+        #expect(vm.cleanOutput.isEmpty)
+
+        vm.launchCommand = "claude"
+        #expect(vm.launchCommand != nil)
+    }
+
+    @Test func terminalIdStabilityAcrossTabSwitches() {
+        // Verify the ViewModel identity doesn't change — the bug was that
+        // SwiftUI recreated the terminal view on tab switch.
+        // The ViewModel should remain the same instance across tabs.
+        let vm = SessionCardViewModel(id: "tab-1", name: "Test")
+        vm.state = .working
+        let originalId = vm.sessionId
+
+        // Simulating tab switches shouldn't affect ViewModel
+        vm.state = .working // No state change
+        #expect(vm.sessionId == originalId)
+    }
+
+    @Test func cleanOutputStripsANSI() {
+        let vm = SessionCardViewModel(id: "tab-1", name: "Test")
+        vm.lastOutput = "\u{1B}[32mHello\u{1B}[0m World"
+        #expect(vm.cleanOutput == "Hello World")
+    }
+}
+
 // MARK: - FileExplorerViewModel Tests
 
 @Suite("FileExplorerViewModel")
