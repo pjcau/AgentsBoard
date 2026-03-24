@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.9.2 (2026-03-24)
+
+Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`
+
+### Bug Fixes
+- **Fix terminal reset on tab switch**: Switching from terminal to activity/info/files tabs no longer resets the PTY process. Root cause was `.offset(y: 100_000)` + `.clipped()` causing SwiftUI to remove the terminal from the render tree. Replaced with overlay strategy where terminal stays at origin and overlay tabs cover it with opaque backgrounds.
+
+### Tests
+- Added 17 new UI tests (SessionTab enum + SessionCardViewModel TabContent) covering tab switching data availability and identity stability (244 total tests, 86 suites).
+
 ## v0.9.0 (unreleased)
 
 ### Desktop-Only Architecture
