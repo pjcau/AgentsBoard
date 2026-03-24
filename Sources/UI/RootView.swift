@@ -84,6 +84,7 @@ public struct RootView: View {
     @Bindable private var nav: NavigationState
     @Bindable private var fleet: FleetBridge
     @AppStorage("appearanceMode") private var appearanceMode: String = "auto"
+    @AppStorage("sessionCardWidth") private var sessionCardWidth: Double = 420
 
     // All ViewModels as @State so they persist across renders
     @State private var sidebarVM: SidebarViewModel
@@ -216,6 +217,9 @@ public struct RootView: View {
                 .help("Settings (Cmd+,)")
             }
         }
+        .onAppear {
+            layoutEngine.updateFleetCardWidth(CGFloat(sessionCardWidth))
+        }
         .preferredColorScheme((AppearanceMode(rawValue: appearanceMode) ?? .auto).colorScheme)
         // Launcher uses NSPanel — no .sheet needed
         .onChange(of: nav.showingLauncher) { _, show in
@@ -303,6 +307,21 @@ public struct RootView: View {
                 layoutButton(.twoColumn, icon: "square.split.2x1", help: "2 columns")
                 layoutButton(.threeColumn, icon: "square.split.3x1", help: "3 columns")
                 layoutButton(.fleet, icon: "square.grid.2x2", help: "Grid")
+            }
+
+            Divider()
+                .frame(height: 16)
+
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.left.and.right")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Slider(value: $sessionCardWidth, in: 300...800, step: 10)
+                    .frame(width: 100)
+                    .help("Card width: \(Int(sessionCardWidth))pt")
+                    .onChange(of: sessionCardWidth) { _, newWidth in
+                        layoutEngine.updateFleetCardWidth(CGFloat(newWidth))
+                    }
             }
         }
         .padding(.horizontal, 12)
@@ -475,12 +494,12 @@ public struct RootView: View {
     }
 
     private func columnCountForMode(_ mode: LayoutMode, width: CGFloat) -> Int {
-        let minWidth: CGFloat = 380
+        let minWidth = CGFloat(sessionCardWidth)
         switch mode {
         case .single, .list: return 1
         case .twoColumn: return 2
         case .threeColumn: return 3
-        case .fleet: return max(2, Int(width / minWidth))
+        case .fleet: return max(1, Int(width / (minWidth + 8)))
         }
     }
 

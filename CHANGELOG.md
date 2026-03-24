@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.9.4 (2026-03-24)
+
+Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`
+
+### New Features
+- **Resizable session card width**: Session cards now have a default 420pt width with a slider (300–800pt) in the layout bar to stretch or shrink cards. Preference is persisted via @AppStorage across app restarts. Affects fleet grid column count and CollectionGridView item sizing.
+
 ## v0.9.3 (2026-03-24)
 
 Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`

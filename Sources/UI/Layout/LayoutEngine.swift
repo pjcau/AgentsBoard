@@ -41,6 +41,11 @@ public final class LayoutEngine {
         layouts[mode] = layout
     }
 
+    /// Update the fleet grid minimum card width for user-resizable sessions.
+    public func updateFleetCardWidth(_ width: CGFloat) {
+        layouts[.fleet] = FleetGridLayout(minCardWidth: width)
+    }
+
     public func computeFrames(cardCount: Int, in size: CGSize, mode: LayoutMode) -> [CardFrame] {
         guard let layout = layouts[mode] else { return [] }
         return layout.layout(cardCount: cardCount, in: size)

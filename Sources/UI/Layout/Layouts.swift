@@ -56,9 +56,13 @@ struct ThreeColumnLayout: LayoutProviding {
 // MARK: - Fleet Grid Layout
 /// Auto-fitting grid that adapts column count to available space.
 struct FleetGridLayout: LayoutProviding {
-    let minCardWidth: CGFloat = 420
+    let minCardWidth: CGFloat
     let minCardHeight: CGFloat = 200
     let spacing: CGFloat = 8
+
+    init(minCardWidth: CGFloat = 420) {
+        self.minCardWidth = minCardWidth
+    }
 
     func layout(cardCount: Int, in size: CGSize) -> [CardFrame] {
         guard cardCount > 0 else { return [] }

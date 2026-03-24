@@ -84,7 +84,7 @@ struct SettingsView: View {
                         infoRow("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")
                         infoRow("Build", value: "Swift \(swiftVersion)")
                         infoRow("Metal", value: metalAvailable ? gpuName : "Not Available")
-                        infoRow("Tests", value: "224 passing")
+                        infoRow("Tests", value: "253 passing")
                     }
                 }
                 .padding(16)
