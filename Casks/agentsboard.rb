@@ -1,8 +1,8 @@
 # MARK: - Homebrew Cask Formula (Step 20.1)
 
 cask "agentsboard" do
-  version "0.9.4"
-  sha256 "23c4d1d05cdecc64f4d791eba8a5e3799a3ccdc002a74bfbfd10e5f24f006fdf"
+  version "0.9.5"
+  sha256 "3e0f393c5fb7da0176baf40aa761606be3aab0274423080387a070d64c1d3318"
 
   url "https://github.com/pjcau/AgentsBoard/releases/download/v#{version}/AgentsBoard-#{version}-macos.zip"
   name "AgentsBoard"
@@ -13,10 +13,17 @@ cask "agentsboard" do
 
   app "AgentsBoard.app"
 
+  # Gracefully quit the running app before upgrade replaces the binary
+  uninstall quit: "com.agentsboard.app"
+
   postflight do
     # Remove quarantine flag so macOS doesn't block the unsigned app
     system_command "/usr/bin/xattr",
                    args: ["-cr", "#{appdir}/AgentsBoard.app"],
+                   sudo: false
+    # Relaunch the app after upgrade
+    system_command "/usr/bin/open",
+                   args: ["#{appdir}/AgentsBoard.app"],
                    sudo: false
   end
 

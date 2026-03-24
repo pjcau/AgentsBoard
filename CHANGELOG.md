@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.9.5 (2026-03-24)
+
+Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`
+
+### Bug Fixes
+- **Fix Homebrew upgrade lifecycle**: Added `uninstall quit:` to the cask so `brew upgrade --cask agentsboard` gracefully closes the running app before replacing the binary. Added auto-relaunch in `postflight` so the app restarts automatically after upgrade completes.
+
 ## v0.9.4 (2026-03-24)
 
 Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`
