@@ -13,6 +13,7 @@ public final class NavigationState {
     public var showingCommandPalette = false
     public var showingBottomTerminal = false
     public var showingSettings = false
+    public var showingUpdateSheet = false
     public var selectedSessionId: String?
     public var layoutMode: LayoutMode = .fleet
 

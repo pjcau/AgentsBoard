@@ -20,6 +20,19 @@
 "app.new_session" = "新規セッション";
 "app.open_app" = "アプリを開く";
 "app.quit" = "終了";
+"app.check_for_updates" = "アップデートを確認…";
+"app.update_title" = "ソフトウェアアップデート";
+"app.current_version" = "現在のバージョン";
+"app.checking_for_updates" = "アップデートを確認中…";
+"app.up_to_date" = "AgentsBoardは最新です";
+"app.update_available" = "バージョン%@が利用可能です";
+"app.installing_update" = "アップデートをインストール中…";
+"app.do_not_close" = "アップデート中はアプリを閉じないでください";
+"app.restarting" = "再起動中…";
+"app.update_error" = "アップデートに失敗しました";
+"app.update_now" = "今すぐアップデート";
+"app.recheck_updates" = "再確認";
+"app.close" = "閉じる";
 
 "sidebar.search_placeholder" = "セッションを検索...";
 "sidebar.show_archived" = "アーカイブ済みを表示";

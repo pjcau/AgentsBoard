@@ -40,6 +40,10 @@ final class CompositionRoot {
 
     private(set) var embeddedServer: EmbeddedServerController?
 
+    // MARK: - Update Manager
+
+    let updateManager = BrewUpdateManager()
+
     // MARK: - Navigation State
 
     let navigationState = NavigationState()

@@ -47,6 +47,19 @@ enum L10n {
         static var newSession: String { tr("app.new_session") }
         static var openApp: String { tr("app.open_app") }
         static var quit: String { tr("app.quit") }
+        static var checkForUpdates: String { tr("app.check_for_updates") }
+        static var updateTitle: String { tr("app.update_title") }
+        static var currentVersion: String { tr("app.current_version") }
+        static var checkingForUpdates: String { tr("app.checking_for_updates") }
+        static var upToDate: String { tr("app.up_to_date") }
+        static var updateAvailable: String { tr("app.update_available") }
+        static var installingUpdate: String { tr("app.installing_update") }
+        static var doNotClose: String { tr("app.do_not_close") }
+        static var restarting: String { tr("app.restarting") }
+        static var updateError: String { tr("app.update_error") }
+        static var updateNow: String { tr("app.update_now") }
+        static var recheckUpdates: String { tr("app.recheck_updates") }
+        static var close: String { tr("app.close") }
     }
 
     // MARK: - Sidebar

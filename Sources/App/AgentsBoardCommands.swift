@@ -16,6 +16,13 @@ struct AgentsBoardCommands: Commands {
             .keyboardShortcut("n", modifiers: .command)
         }
 
+        // "Check for Updates..." in the app menu (after .appInfo = after "About AgentsBoard")
+        CommandGroup(after: .appInfo) {
+            Button(L10n.App.checkForUpdates) {
+                navigationState.showingUpdateSheet = true
+            }
+        }
+
         CommandGroup(after: .sidebar) {
             Divider()
 

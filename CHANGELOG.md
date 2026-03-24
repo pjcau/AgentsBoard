@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.9.3 (2026-03-24)
+
+Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`
+
+### New Features
+- **In-app update via Homebrew**: Menu AgentsBoard > "Check for Updates…" opens a sheet that checks `brew info`, shows available version, and runs `brew upgrade --cask agentsboard` with automatic app relaunch.
+- **Fully localized**: Update UI strings in all 7 languages (EN, IT, DE, ES, FR, JA, ZH).
+
+### Tests
+- Added 9 new tests (NavigationState UpdateSheet + L10n Update Strings) — 253 total tests, 88 suites.
+
 ## v0.9.2 (2026-03-24)
 
 Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`

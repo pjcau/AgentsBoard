@@ -55,6 +55,12 @@ struct AgentsBoardApp: App {
                 }
             )
             .frame(minWidth: 800, minHeight: 600)
+            .sheet(isPresented: Binding(
+                get: { compositionRoot.navigationState.showingUpdateSheet },
+                set: { compositionRoot.navigationState.showingUpdateSheet = $0 }
+            )) {
+                UpdateSheet(updateManager: compositionRoot.updateManager)
+            }
         }
         .windowStyle(.titleBar)
         .defaultSize(width: 1200, height: 800)

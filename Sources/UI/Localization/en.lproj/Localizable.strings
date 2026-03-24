@@ -19,6 +19,19 @@
 "app.new_session" = "New Session";
 "app.open_app" = "Open App";
 "app.quit" = "Quit";
+"app.check_for_updates" = "Check for Updates…";
+"app.update_title" = "Software Update";
+"app.current_version" = "Current version";
+"app.checking_for_updates" = "Checking for updates…";
+"app.up_to_date" = "AgentsBoard is up to date";
+"app.update_available" = "Version %@ is available";
+"app.installing_update" = "Installing update…";
+"app.do_not_close" = "Do not close the app during update";
+"app.restarting" = "Restarting…";
+"app.update_error" = "Update failed";
+"app.update_now" = "Update Now";
+"app.recheck_updates" = "Check Again";
+"app.close" = "Close";
 
 // MARK: - Sidebar
 "sidebar.search_placeholder" = "Search sessions...";

@@ -20,6 +20,19 @@
 "app.new_session" = "Nueva sesión";
 "app.open_app" = "Abrir aplicación";
 "app.quit" = "Salir";
+"app.check_for_updates" = "Buscar actualizaciones…";
+"app.update_title" = "Actualización de software";
+"app.current_version" = "Versión actual";
+"app.checking_for_updates" = "Buscando actualizaciones…";
+"app.up_to_date" = "AgentsBoard está actualizado";
+"app.update_available" = "La versión %@ está disponible";
+"app.installing_update" = "Instalando actualización…";
+"app.do_not_close" = "No cierres la app durante la actualización";
+"app.restarting" = "Reiniciando…";
+"app.update_error" = "Actualización fallida";
+"app.update_now" = "Actualizar ahora";
+"app.recheck_updates" = "Volver a comprobar";
+"app.close" = "Cerrar";
 
 "sidebar.search_placeholder" = "Buscar sesiones...";
 "sidebar.show_archived" = "Mostrar sesiones archivadas";

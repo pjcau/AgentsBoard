@@ -558,3 +558,83 @@ struct FileExplorerViewModelTests {
         #expect(vm.rootNodes.isEmpty)
     }
 }
+
+// MARK: - NavigationState Update Sheet Tests
+
+@Suite("NavigationState UpdateSheet")
+struct NavigationStateUpdateSheetTests {
+    @Test func showingUpdateSheetDefaultsFalse() {
+        let nav = NavigationState()
+        #expect(!nav.showingUpdateSheet)
+    }
+
+    @Test func showingUpdateSheetToggle() {
+        let nav = NavigationState()
+        nav.showingUpdateSheet = true
+        #expect(nav.showingUpdateSheet)
+        nav.showingUpdateSheet = false
+        #expect(!nav.showingUpdateSheet)
+    }
+
+    @Test func updateSheetIndependentOfOtherSheets() {
+        let nav = NavigationState()
+        nav.showingUpdateSheet = true
+        nav.showingSettings = true
+        nav.showingFleetOverview = true
+        // All can be true independently
+        #expect(nav.showingUpdateSheet)
+        #expect(nav.showingSettings)
+        #expect(nav.showingFleetOverview)
+    }
+}
+
+// MARK: - L10n Update Strings Tests
+
+@Suite("L10n Update Strings")
+struct L10nUpdateStringsTests {
+    @Test func checkForUpdatesStringExists() {
+        let s = L10n.App.checkForUpdates
+        #expect(!s.isEmpty)
+    }
+
+    @Test func updateTitleStringExists() {
+        let s = L10n.App.updateTitle
+        #expect(!s.isEmpty)
+    }
+
+    @Test func currentVersionStringExists() {
+        let s = L10n.App.currentVersion
+        #expect(!s.isEmpty)
+    }
+
+    @Test func updateNowStringExists() {
+        let s = L10n.App.updateNow
+        #expect(!s.isEmpty)
+    }
+
+    @Test func closeStringExists() {
+        let s = L10n.App.close
+        #expect(!s.isEmpty)
+    }
+
+    @Test func allUpdateStringsNonEmpty() {
+        let strings = [
+            L10n.App.checkForUpdates,
+            L10n.App.updateTitle,
+            L10n.App.currentVersion,
+            L10n.App.checkingForUpdates,
+            L10n.App.upToDate,
+            L10n.App.updateAvailable,
+            L10n.App.installingUpdate,
+            L10n.App.doNotClose,
+            L10n.App.restarting,
+            L10n.App.updateError,
+            L10n.App.updateNow,
+            L10n.App.recheckUpdates,
+            L10n.App.close,
+        ]
+        for s in strings {
+            #expect(!s.isEmpty)
+        }
+    }
+}
