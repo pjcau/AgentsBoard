@@ -1,8 +1,8 @@
 # MARK: - Homebrew Cask Formula (Step 20.1)
 
 cask "agentsboard" do
-  version "0.9.5"
-  sha256 "3e0f393c5fb7da0176baf40aa761606be3aab0274423080387a070d64c1d3318"
+  version "0.9.6"
+  sha256 "4604412b4876f5040485cab4406880f990a3113cb43806afbe72562aed850e0f"
 
   url "https://github.com/pjcau/AgentsBoard/releases/download/v#{version}/AgentsBoard-#{version}-macos.zip"
   name "AgentsBoard"

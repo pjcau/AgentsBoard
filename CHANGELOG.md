@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.9.6 (2026-03-27)
+
+Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`
+
+### New Features
+- **Drag & drop files into terminal sessions**: Drop files or images onto any terminal session card to insert their shell-escaped paths as input. Works on macOS (SwiftUI `.onDrop`) and Linux (Qt `DropArea` via C FFI). Claude Code images use `@path` format. Visual green drop overlay with localized strings in all 7 languages.
+- **ShellPathEscaper utility**: Cross-platform shell path escaping (single-quote wrapping with embedded quote handling) shared between macOS and Linux frontends.
+- **C FFI exports**: `ab_escape_shell_path()` and `ab_free_string()` for Qt/Linux file drop support.
+
+### Tests
+- Added 8 new ShellPathEscaper tests (simple paths, spaces, quotes, special chars, multi-path, provider formatting) — 261 total tests.
+
 ## v0.9.5 (2026-03-24)
 
 Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`
