@@ -30,12 +30,12 @@ public:
     Q_INVOKABLE void setBridge(QObject *bridge);
     Q_INVOKABLE void launchProcess();
 
+    Q_INVOKABLE void handleDroppedUrls(const QList<QUrl> &urls);
+
 signals:
     void sessionIdChanged();
     void commandChanged();
     void workingDirectoryChanged();
-
-    Q_INVOKABLE void handleDroppedUrls(const QList<QUrl> &urls);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
