@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.9.7 (2026-03-27)
+
+Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`
+
+### Bug Fixes
+- **Fix app relaunch after Homebrew upgrade**: The app now saves all active sessions before quitting, waits for the process to fully exit (poll loop instead of fixed `sleep 1`), and restores sessions automatically on relaunch. Uses `exit(0)` instead of `NSApplication.terminate(nil)` to skip the confirmation dialog that could block the quit.
+- **Session persistence across restarts**: New `SessionPersistence` module saves session name/command/workDir to UserDefaults before upgrade quit and auto-restores them on next launch.
+
 ## v0.9.6 (2026-03-27)
 
 Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`

@@ -109,7 +109,7 @@ final class CompositionRoot {
         registerDefaultCommands()
 
         // Phase 6: Setup status bar (after init completes)
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
             statusBar.setup()
             menuBarVM.onNewSession = { [weak self] in
                 self?.navigationState.showingLauncher = true
@@ -117,7 +117,34 @@ final class CompositionRoot {
             menuBarVM.onOpenMainWindow = {
                 NSApp.activate(ignoringOtherApps: true)
             }
+
+            // Phase 7: Wire session save callback for relaunch
+            self?.updateManager.onSaveBeforeQuit = { [weak self] in
+                guard let self else { return }
+                SessionPersistence.save(sessions: self.fleetManager.sessions)
+            }
+
+            // Phase 8: Restore sessions from previous run (if any)
+            self?.restorePersistedSessions()
         }
+    }
+
+    // MARK: - Session Restore
+
+    private func restorePersistedSessions() {
+        let saved = SessionPersistence.load()
+        guard !saved.isEmpty else { return }
+
+        print("[Restore] Restoring \(saved.count) session(s) from previous run")
+        for entry in saved {
+            launchSession(
+                command: entry.command,
+                name: entry.name,
+                workdir: entry.workDir
+            )
+        }
+        SessionPersistence.clear()
+        print("[Restore] Done restoring sessions")
     }
 
     // MARK: - Session Launch

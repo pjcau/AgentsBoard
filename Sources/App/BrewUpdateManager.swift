@@ -115,11 +115,21 @@ final class BrewUpdateManager {
         }
     }
 
+    /// Callback set by CompositionRoot to save sessions before quit.
+    var onSaveBeforeQuit: (() -> Void)?
+
     private func relaunchApp() {
         guard let appURL = Bundle.main.bundleURL as URL? else { return }
 
-        // Launch a background process that waits for us to quit, then reopens the app
+        // Save current sessions so they can be restored after relaunch
+        onSaveBeforeQuit?()
+
+        // Launch a background process that waits for the app to fully exit,
+        // then reopens it. Uses a retry loop in case brew is still writing files.
         let script = """
+        while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do
+            sleep 0.5
+        done
         sleep 1
         open "\(appURL.path)"
         """
@@ -129,9 +139,10 @@ final class BrewUpdateManager {
         process.arguments = ["-c", script]
         try? process.run()
 
-        // Terminate current instance
+        // Force quit without confirmation dialog (terminate(nil) shows "Do you want to quit?")
         DispatchQueue.main.async {
-            NSApplication.shared.terminate(nil)
+            NSApplication.shared.reply(toApplicationShouldTerminate: true)
+            exit(0)
         }
     }
 
