@@ -43,19 +43,88 @@ Rectangle {
         // Terminal widget placeholder
         // In production, this uses the native TerminalWidget (QQuickPaintedItem)
         // registered as a QML type. For now, show output as scrollable text.
-        ScrollView {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            TextArea {
-                id: terminalOutput
-                readOnly: true
-                color: "#E0E0E0"
-                font.family: "monospace"
-                font.pixelSize: 13
-                background: Rectangle { color: "#1A1A1A" }
-                wrapMode: TextEdit.NoWrap
-                text: sessionModel.output || ""
+            ScrollView {
+                anchors.fill: parent
+
+                TextArea {
+                    id: terminalOutput
+                    readOnly: true
+                    color: "#E0E0E0"
+                    font.family: "monospace"
+                    font.pixelSize: 13
+                    background: Rectangle { color: "#1A1A1A" }
+                    wrapMode: TextEdit.NoWrap
+                    text: sessionModel.output || ""
+                }
+            }
+
+            // Drag-and-drop overlay for file insertion into terminal
+            DropArea {
+                id: dropArea
+                anchors.fill: parent
+                keys: ["text/uri-list"]
+
+                onEntered: function(drag) {
+                    dropOverlay.visible = true
+                    drag.accepted = true
+                }
+
+                onExited: {
+                    dropOverlay.visible = false
+                }
+
+                onDropped: function(drop) {
+                    dropOverlay.visible = false
+                    if (drop.hasUrls) {
+                        for (var i = 0; i < drop.urls.length; i++) {
+                            var url = drop.urls[i]
+                            // Convert file:// URL to local path
+                            var path = url.toString()
+                            if (path.startsWith("file://")) {
+                                path = path.substring(7)
+                            }
+                            // Escape path for shell: wrap in single quotes
+                            path = path.replace(/'/g, "'\\''")
+                            var escaped = "'" + path + "' "
+                            sessionModel.sendInput(escaped)
+                        }
+                    }
+                    drop.accepted = true
+                }
+            }
+
+            // Visual drop feedback overlay
+            Rectangle {
+                id: dropOverlay
+                anchors.fill: parent
+                visible: false
+                color: "#1530D15820"
+                border.color: "#30D158"
+                border.width: 2
+                radius: 4
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 6
+
+                    Text {
+                        text: "\u2193"
+                        font.pixelSize: 32
+                        color: "#30D158"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Text {
+                        text: "Drop files into terminal"
+                        font.pixelSize: 12
+                        color: "#30D158"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                }
             }
         }
 

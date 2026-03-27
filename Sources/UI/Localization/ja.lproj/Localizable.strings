@@ -161,7 +161,9 @@
 
 "drop.files_attached" = "個のファイルを添付";
 "drop.drop_here" = "ここにファイルをドロップ";
+"drop.drop_files_to_terminal" = "ターミナルにファイルをドロップ";
 "drop.unsupported" = "非対応のファイル形式です";
+"drop.files_inserted" = "%d個のファイルパスを挿入しました";
 
 "launcher.title" = "セッションを起動";
 "launcher.add_session" = "セッションを追加";

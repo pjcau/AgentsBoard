@@ -161,7 +161,9 @@
 
 "drop.files_attached" = "archivo(s) adjuntado(s)";
 "drop.drop_here" = "Suelta archivos aquí";
+"drop.drop_files_to_terminal" = "Arrastra archivos al terminal";
 "drop.unsupported" = "Tipo de archivo no compatible";
+"drop.files_inserted" = "%d ruta(s) de archivo insertada(s)";
 
 "launcher.title" = "Iniciar sesiones";
 "launcher.add_session" = "Añadir sesión";

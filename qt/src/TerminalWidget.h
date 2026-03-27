@@ -4,6 +4,7 @@
 #include <QQuickPaintedItem>
 #include <QPainter>
 #include <QSocketNotifier>
+#include <QMimeData>
 #include "CoreBridge.h"
 
 class TerminalWidget : public QQuickPaintedItem
@@ -33,6 +34,8 @@ signals:
     void sessionIdChanged();
     void commandChanged();
     void workingDirectoryChanged();
+
+    Q_INVOKABLE void handleDroppedUrls(const QList<QUrl> &urls);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;

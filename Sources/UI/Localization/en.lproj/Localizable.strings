@@ -176,7 +176,9 @@
 // MARK: - Drag & Drop
 "drop.files_attached" = "file(s) attached";
 "drop.drop_here" = "Drop files here";
+"drop.drop_files_to_terminal" = "Drop files into terminal";
 "drop.unsupported" = "Unsupported file type";
+"drop.files_inserted" = "%d file path(s) inserted";
 
 // MARK: - Launcher
 "launcher.title" = "Launch Sessions";

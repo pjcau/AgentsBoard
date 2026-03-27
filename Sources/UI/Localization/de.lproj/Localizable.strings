@@ -142,7 +142,9 @@
 "diagram.no_diagram" = "Kein Diagramm vorhanden";
 "drop.files_attached" = "Datei(en) angehängt";
 "drop.drop_here" = "Dateien hierhin ziehen";
+"drop.drop_files_to_terminal" = "Dateien ins Terminal ziehen";
 "drop.unsupported" = "Nicht unterstützter Dateityp";
+"drop.files_inserted" = "%d Dateipfad(e) eingefügt";
 "launcher.title" = "Sitzungen starten";
 "launcher.add_session" = "Sitzung hinzufügen";
 "launcher.enter_command" = "Befehl zum Starten eingeben";

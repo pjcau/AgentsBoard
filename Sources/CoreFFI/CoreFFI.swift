@@ -245,6 +245,15 @@ public func ab_session_send_input(
     handle.session.sendInput(text)
 }
 
+/// Escapes a file path for safe shell insertion. Caller must free the result with ab_free_string.
+@_cdecl("ab_escape_shell_path")
+public func ab_escape_shell_path(_ path: UnsafePointer<CChar>?) -> UnsafeMutablePointer<CChar>? {
+    guard let path else { return nil }
+    let swift = String(cString: path)
+    let escaped = ShellPathEscaper.escape(swift)
+    return strdup(escaped)
+}
+
 @_cdecl("ab_session_get_state")
 public func ab_session_get_state(_ ptr: UnsafeMutableRawPointer?) -> Int32 {
     guard let ptr else { return ABAgentState.inactive.rawValue }
@@ -618,4 +627,12 @@ extension ABLayoutMode {
         default: return .fleet
         }
     }
+}
+
+// MARK: - Memory Management
+
+/// Frees a C string allocated by ab_ functions (e.g., ab_escape_shell_path).
+@_cdecl("ab_free_string")
+public func ab_free_string(_ ptr: UnsafeMutablePointer<CChar>?) {
+    free(ptr)
 }

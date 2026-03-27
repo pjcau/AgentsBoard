@@ -142,7 +142,9 @@
 "diagram.no_diagram" = "Nessun diagramma da mostrare";
 "drop.files_attached" = "file allegati";
 "drop.drop_here" = "Trascina i file qui";
+"drop.drop_files_to_terminal" = "Trascina file nel terminale";
 "drop.unsupported" = "Tipo di file non supportato";
+"drop.files_inserted" = "%d percorso/i file inserito/i";
 "launcher.title" = "Avvia sessioni";
 "launcher.add_session" = "Aggiungi sessione";
 "launcher.enter_command" = "Inserisci un comando da eseguire";

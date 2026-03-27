@@ -195,3 +195,62 @@ struct CursorPositionTests {
         #expect(pos.isVisible)
     }
 }
+
+// MARK: - ShellPathEscaper Tests
+
+@Suite("ShellPathEscaper")
+struct ShellPathEscaperTests {
+
+    @Test func simplePath() {
+        let result = ShellPathEscaper.escape("/usr/bin/test")
+        #expect(result == "'/usr/bin/test'")
+    }
+
+    @Test func pathWithSpaces() {
+        let result = ShellPathEscaper.escape("/Users/test user/Documents/my file.txt")
+        #expect(result == "'/Users/test user/Documents/my file.txt'")
+    }
+
+    @Test func pathWithSingleQuote() {
+        let result = ShellPathEscaper.escape("/tmp/it's a file")
+        #expect(result == "'/tmp/it'\\''s a file'")
+    }
+
+    @Test func pathWithSpecialChars() {
+        let result = ShellPathEscaper.escape("/tmp/$HOME/file(1).txt")
+        #expect(result == "'/tmp/$HOME/file(1).txt'")
+    }
+
+    @Test func formatMultiplePaths() {
+        let paths = ["/tmp/a.txt", "/tmp/b.txt"]
+        let result = ShellPathEscaper.formatPaths(paths)
+        #expect(result == "'/tmp/a.txt' '/tmp/b.txt'")
+    }
+
+    @Test func formatForClaudeImage() {
+        let result = ShellPathEscaper.formatForProvider(
+            "/tmp/screenshot.png",
+            isImage: true,
+            providerName: "claude"
+        )
+        #expect(result == "@'/tmp/screenshot.png'")
+    }
+
+    @Test func formatForClaudeNonImage() {
+        let result = ShellPathEscaper.formatForProvider(
+            "/tmp/code.py",
+            isImage: false,
+            providerName: "claude"
+        )
+        #expect(result == "'/tmp/code.py'")
+    }
+
+    @Test func formatForOtherProvider() {
+        let result = ShellPathEscaper.formatForProvider(
+            "/tmp/image.png",
+            isImage: true,
+            providerName: "codex"
+        )
+        #expect(result == "'/tmp/image.png'")
+    }
+}

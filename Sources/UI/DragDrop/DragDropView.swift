@@ -13,7 +13,9 @@ struct FileAttachment: Identifiable {
     let fileType: UTType?
     let size: Int64
     let isImage: Bool
+    #if canImport(AppKit)
     var thumbnailImage: NSImage?
+    #endif
 }
 
 /// Processes dropped files into agent-compatible format.
@@ -27,8 +29,9 @@ struct AttachmentProcessor {
             let ext = url.pathExtension.lowercased()
             let isImage = ["png", "jpg", "jpeg", "gif", "svg", "webp"].contains(ext)
             let fileType = UTType(filenameExtension: ext)
-            let thumbnail = isImage ? NSImage(contentsOf: url) : nil
 
+            #if canImport(AppKit)
+            let thumbnail = isImage ? NSImage(contentsOf: url) : nil
             return FileAttachment(
                 path: url.path,
                 filename: url.lastPathComponent,
@@ -37,20 +40,25 @@ struct AttachmentProcessor {
                 isImage: isImage,
                 thumbnailImage: thumbnail
             )
+            #else
+            return FileAttachment(
+                path: url.path,
+                filename: url.lastPathComponent,
+                fileType: fileType,
+                size: size,
+                isImage: isImage
+            )
+            #endif
         }
     }
 
     /// Converts attachments to the format expected by each provider.
     func formatForProvider(_ attachment: FileAttachment, provider: AgentProvider) -> String {
-        switch provider {
-        case .claude:
-            if attachment.isImage {
-                return "@\(attachment.path)"  // Claude Code accepts file paths
-            }
-            return attachment.path
-        default:
-            return attachment.path
-        }
+        ShellPathEscaper.formatForProvider(
+            attachment.path,
+            isImage: attachment.isImage,
+            providerName: provider == .claude ? "claude" : "other"
+        )
     }
 }
 
@@ -80,6 +88,36 @@ struct DropZoneView: View {
                             .foregroundStyle(isValid ? .green : .red)
                     }
                 }
+        }
+    }
+}
+
+/// Drop zone overlay specifically for terminal areas.
+struct TerminalDropZoneView: View {
+    let isTargeted: Bool
+
+    var body: some View {
+        if isTargeted {
+            RoundedRectangle(cornerRadius: 4)
+                .strokeBorder(
+                    Color.green,
+                    style: StrokeStyle(lineWidth: 2, dash: [6])
+                )
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.green.opacity(0.08))
+                )
+                .overlay {
+                    VStack(spacing: 6) {
+                        Image(systemName: "arrow.down.doc.fill")
+                            .font(.title2)
+                            .foregroundStyle(.green)
+                        Text(L10n.Drop.dropFilesToTerminal)
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                }
+                .allowsHitTesting(false)
         }
     }
 }
@@ -124,6 +162,7 @@ struct AttachmentChip: View {
 
     var body: some View {
         HStack(spacing: 4) {
+            #if canImport(AppKit)
             if let thumb = attachment.thumbnailImage {
                 Image(nsImage: thumb)
                     .resizable()
@@ -133,6 +172,10 @@ struct AttachmentChip: View {
                 Image(systemName: "doc")
                     .font(.caption)
             }
+            #else
+            Image(systemName: attachment.isImage ? "photo" : "doc")
+                .font(.caption)
+            #endif
             Text(attachment.filename)
                 .font(.caption)
                 .lineLimit(1)

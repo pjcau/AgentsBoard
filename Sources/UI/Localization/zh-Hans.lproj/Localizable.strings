@@ -161,7 +161,9 @@
 
 "drop.files_attached" = "个文件已附加";
 "drop.drop_here" = "将文件拖放到此处";
+"drop.drop_files_to_terminal" = "将文件拖放到终端";
 "drop.unsupported" = "不支持的文件类型";
+"drop.files_inserted" = "已插入 %d 个文件路径";
 
 "launcher.title" = "启动会话";
 "launcher.add_session" = "添加会话";

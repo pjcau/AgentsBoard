@@ -38,6 +38,7 @@ struct SessionCardView: View {
     @State private var fileVM = FileExplorerViewModel()
     @State private var showingEdit = false
     @State private var isVisible = false
+    @State private var isDropTargeted = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -66,8 +67,17 @@ struct SessionCardView: View {
                 } else if selectedTab == .files {
                     filesContent
                 }
+
+                // Drop zone overlay for terminal tab
+                if selectedTab == .terminal {
+                    TerminalDropZoneView(isTargeted: isDropTargeted)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                guard selectedTab == .terminal else { return false }
+                return handleFileDrop(providers)
+            }
 
             // Tab bar
             SessionTabBar(
@@ -215,6 +225,26 @@ struct SessionCardView: View {
             }
             .frame(minHeight: 80)
         }
+    }
+
+    // MARK: - File Drop Handling
+
+    /// Handles file drops on the terminal area — escapes paths and sends them as input.
+    private func handleFileDrop(_ providers: [NSItemProvider]) -> Bool {
+        var handled = false
+        for provider in providers {
+            provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { data, _ in
+                guard let data = data as? Data,
+                      let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
+
+                let escaped = ShellPathEscaper.escape(url.path)
+                DispatchQueue.main.async {
+                    viewModel.sendInput(escaped + " ")
+                }
+            }
+            handled = true
+        }
+        return handled
     }
 
     /// Lightweight terminal preview — shows status badge + last output, no PTY process.

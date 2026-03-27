@@ -221,6 +221,15 @@ bool ab_activity_get_event(ABCore core, const char* session_id, int32_t index,
                             const char** out_type, const char** out_details,
                             double* out_timestamp, double* out_cost);
 
+// MARK: - Utilities
+
+/// Escape a file path for safe shell insertion.
+/// Returns a newly allocated string. Caller must free with ab_free_string().
+char* ab_escape_shell_path(const char* path);
+
+/// Free a string allocated by ab_ functions.
+void ab_free_string(char* ptr);
+
 // MARK: - Version
 
 /// Get the library version string. Static string, never freed.

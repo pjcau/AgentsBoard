@@ -120,6 +120,22 @@ void TerminalWidget::keyPressEvent(QKeyEvent *e) {
     e->accept();
 }
 
+void TerminalWidget::handleDroppedUrls(const QList<QUrl> &urls) {
+    if (m_masterFd < 0) return;
+    for (const auto &url : urls) {
+        if (!url.isLocalFile()) continue;
+        QString path = url.toLocalFile();
+        // Escape path for shell: wrap in single quotes, escape embedded quotes
+        QString escaped = path;
+        escaped.replace("'", "'\\''");
+        escaped = "'" + escaped + "' ";
+#ifdef Q_OS_LINUX
+        QByteArray u = escaped.toUtf8();
+        ::write(m_masterFd, u.constData(), u.size());
+#endif
+    }
+}
+
 void TerminalWidget::wheelEvent(QWheelEvent *e) {
     int maxScroll=m_scrollback.size();
     if(e->angleDelta().y()>0) m_scrollOffset=qMin(m_scrollOffset+3,maxScroll);

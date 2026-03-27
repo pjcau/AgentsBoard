@@ -258,7 +258,9 @@ enum L10n {
     enum Drop {
         static var filesAttached: String { tr("drop.files_attached") }
         static var dropHere: String { tr("drop.drop_here") }
+        static var dropFilesToTerminal: String { tr("drop.drop_files_to_terminal") }
         static var unsupported: String { tr("drop.unsupported") }
+        static func filesInserted(_ count: Int) -> String { String(format: tr("drop.files_inserted"), count) }
     }
 
     // MARK: - Launcher
