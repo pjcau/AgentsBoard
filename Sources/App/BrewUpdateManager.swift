@@ -123,6 +123,9 @@ final class BrewUpdateManager {
 
         // Save current sessions so they can be restored after relaunch
         onSaveBeforeQuit?()
+        // Force UserDefaults flush to disk before exiting — set() is async
+        // and exit(0) would kill the process before the write completes.
+        UserDefaults.standard.synchronize()
 
         // Launch a background process that waits for the app to fully exit,
         // then reopens it. Uses a retry loop in case brew is still writing files.

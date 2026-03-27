@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.9.8 (2026-03-27)
+
+Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`
+
+### Bug Fixes
+- **Fix drag-and-drop images for Claude Code**: Dropped images now use `@'/path/to/image.png'` format required by Claude Code. Previously `handleFileDrop()` called `escape()` instead of `formatForProvider()`, so images were pasted as plain paths without the `@` prefix.
+- **Fix session restore after Homebrew upgrade**: Added `UserDefaults.synchronize()` before `exit(0)` in relaunch flow. Without it, persisted sessions could be lost because `UserDefaults.set()` is async and the write may not flush to disk before the process exits.
+
 ## v0.9.7 (2026-03-27)
 
 Install: `brew tap pjcau/agentsboard && brew install --cask agentsboard`

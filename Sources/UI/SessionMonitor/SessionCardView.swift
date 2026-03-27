@@ -229,15 +229,26 @@ struct SessionCardView: View {
 
     // MARK: - File Drop Handling
 
+    /// Image file extensions recognized for provider-specific formatting.
+    private static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "svg", "webp"]
+
     /// Handles file drops on the terminal area — escapes paths and sends them as input.
+    /// Uses provider-aware formatting so Claude Code receives the `@` prefix for images.
     private func handleFileDrop(_ providers: [NSItemProvider]) -> Bool {
         var handled = false
+        let providerName = viewModel.provider?.rawValue ?? ""
         for provider in providers {
             provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { data, _ in
                 guard let data = data as? Data,
                       let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
 
-                let escaped = ShellPathEscaper.escape(url.path)
+                let ext = url.pathExtension.lowercased()
+                let isImage = Self.imageExtensions.contains(ext)
+                let escaped = ShellPathEscaper.formatForProvider(
+                    url.path,
+                    isImage: isImage,
+                    providerName: providerName
+                )
                 DispatchQueue.main.async {
                     viewModel.sendInput(escaped + " ")
                 }
